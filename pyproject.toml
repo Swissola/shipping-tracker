@@ -43,7 +43,7 @@ strict = true
 python_version = "3.11"
 
 [[tool.mypy.overrides]]
-module = ["google.*", "googleapiclient.*"]
+module = ["google.*", "googleapiclient.*", "google_auth_oauthlib.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
