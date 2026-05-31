@@ -12,7 +12,7 @@ Six phases build the tool in the natural order of dependencies: scaffold the pro
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Scaffold** - Project toolchain and package structure ready for development
+- [x] **Phase 1: Scaffold** - Project toolchain and package structure ready for development *(Planned — 2 plans)*
 - [ ] **Phase 2: Gmail** - Tool authenticates to Gmail and retrieves unread shipping emails
 - [ ] **Phase 3: Parser Layer** - AliExpress emails parsed via pluggable BaseParser architecture
 - [ ] **Phase 4: Deduplication** - SQLite state layer enforces idempotency across all runs
@@ -35,8 +35,17 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
+
+**Wave 1**
 - [ ] 01-01-PLAN.md — Package foundation: pyproject.toml, .gitignore, .env.example, shipping_tracker package with entry point, pipeline stub, logging config, and BaseParser ABC
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02-PLAN.md — Toolchain enforcement: pre-commit hooks, GitHub Actions CI, pytest infrastructure with smoke tests
+
+**Cross-cutting constraints:**
+- Privacy: `.env`, `*.db`, `token.json` must be in `.gitignore` before any secret is written (01-01)
+- mypy `--strict` enforced from first commit — all source files must be fully typed
+- All test fixtures use synthetic data only (no real tracking numbers, emails, or order refs)
 
 ### Phase 2: Gmail
 **Goal**: The tool authenticates to Gmail via OAuth2 and retrieves unread emails matching shipping sender patterns, producing a list of raw email objects for downstream processing.
