@@ -57,7 +57,15 @@ Plans:
   1. Running the tool after initial OAuth consent produces a persisted token file; subsequent runs use the token without opening a browser
   2. The tool queries Gmail and returns the set of unread messages matching at least one configured sender pattern
   3. The Gmail fetch is covered by tests using a synthetic fixture (no real email data in repo)
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+
+**Wave 1**
+- [ ] 02-01-PLAN.md — Gmail foundation: install Google stack + stubs, add Gmail .env vars, create gmail package (auth/query/RawEmail contracts) + synthetic fixture and auth/query tests (GMAIL-01, GMAIL-03, GMAIL-02 query)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 02-02-PLAN.md — Fetch loop: implement fetch_unread_shipping_emails() (paginate, MIME/base64url decode, RawEmail list), wire into main(), client + LOG-02 PII-safety tests (GMAIL-02)
 
 ### Phase 3: Parser Layer
 **Goal**: AliExpress shipping notification emails are parsed to extract tracking number and carrier via a pluggable BaseParser architecture that makes adding future parsers a drop-in operation.
