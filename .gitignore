@@ -1,0 +1,19 @@
+# Secrets and credentials (SETUP-07 — NON-NEGOTIABLE, project will be public)
+.env
+token.json
+credentials.json
+
+# Database
+*.db
+*.sqlite3
+
+# Logs directory
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+venv/
