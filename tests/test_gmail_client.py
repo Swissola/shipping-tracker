@@ -10,7 +10,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from shipping_tracker.gmail.client import (
-    RawEmail,
     _decode_base64url,
     fetch_unread_shipping_emails,
 )
@@ -42,6 +41,9 @@ FAKE_GMAIL_MESSAGE_2: dict[str, object] = {
     },
 }
 
+# Shared fake credentials mock (no real tokens anywhere)
+_FAKE_CREDS = MagicMock(name="FAKECREDENTIALS")
+
 
 def test_fetch_returns_raw_emails() -> None:
     """fetch_unread_shipping_emails wraps matching messages as RawEmail objects."""
@@ -56,9 +58,15 @@ def test_fetch_returns_raw_emails() -> None:
     # messages().get().execute() returns the full synthetic message
     mock_service.users().messages().get().execute.return_value = FAKE_GMAIL_MESSAGE
 
-    with patch(
-        "shipping_tracker.gmail.client.build_service",
-        return_value=mock_service,
+    with (
+        patch(
+            "shipping_tracker.gmail.client.load_credentials",
+            return_value=_FAKE_CREDS,
+        ),
+        patch(
+            "shipping_tracker.gmail.client.build_service",
+            return_value=mock_service,
+        ),
     ):
         results = fetch_unread_shipping_emails(
             senders=["@fakestore.example.com"],
@@ -93,9 +101,15 @@ def test_fetch_pagination() -> None:
         FAKE_GMAIL_MESSAGE_2,
     ]
 
-    with patch(
-        "shipping_tracker.gmail.client.build_service",
-        return_value=mock_service,
+    with (
+        patch(
+            "shipping_tracker.gmail.client.load_credentials",
+            return_value=_FAKE_CREDS,
+        ),
+        patch(
+            "shipping_tracker.gmail.client.build_service",
+            return_value=mock_service,
+        ),
     ):
         results = fetch_unread_shipping_emails(
             senders=["@fakestore.example.com"],
@@ -112,9 +126,15 @@ def test_fetch_empty() -> None:
     mock_service = MagicMock()
     mock_service.users().messages().list().execute.return_value = {}
 
-    with patch(
-        "shipping_tracker.gmail.client.build_service",
-        return_value=mock_service,
+    with (
+        patch(
+            "shipping_tracker.gmail.client.load_credentials",
+            return_value=_FAKE_CREDS,
+        ),
+        patch(
+            "shipping_tracker.gmail.client.build_service",
+            return_value=mock_service,
+        ),
     ):
         results = fetch_unread_shipping_emails(
             senders=["@fakestore.example.com"],
@@ -139,12 +159,18 @@ def test_fetch_does_not_log_pii(caplog: pytest.LogCaptureFixture) -> None:
     }
     mock_service.users().messages().get().execute.return_value = FAKE_GMAIL_MESSAGE
 
-    with patch(
-        "shipping_tracker.gmail.client.build_service",
-        return_value=mock_service,
+    with (
+        patch(
+            "shipping_tracker.gmail.client.load_credentials",
+            return_value=_FAKE_CREDS,
+        ),
+        patch(
+            "shipping_tracker.gmail.client.build_service",
+            return_value=mock_service,
+        ),
+        caplog.at_level(logging.DEBUG, logger="shipping_tracker.gmail.client"),
     ):
-        with caplog.at_level(logging.DEBUG, logger="shipping_tracker.gmail.client"):
-            fetch_unread_shipping_emails(["@fakestore.example.com"], 30)
+        fetch_unread_shipping_emails(["@fakestore.example.com"], 30)
 
     assert "@" not in caplog.text, "Log must not contain email addresses (LOG-02)"
     assert "FAKE1234567890" not in caplog.text, (
