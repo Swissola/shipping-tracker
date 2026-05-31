@@ -7,13 +7,13 @@
 
 ### Project Setup
 
-- [ ] **SETUP-01**: Python package scaffolded under `shipping_tracker/` with `pyproject.toml` as the packaging manifest
-- [ ] **SETUP-02**: `ruff` configured for lint and format (replaces pylint/black/isort)
-- [ ] **SETUP-03**: `mypy` configured for static type checking
+- [x] **SETUP-01**: Python package scaffolded under `shipping_tracker/` with `pyproject.toml` as the packaging manifest
+- [x] **SETUP-02**: `ruff` configured for lint and format (replaces pylint/black/isort)
+- [x] **SETUP-03**: `mypy` configured for static type checking
 - [ ] **SETUP-04**: `pytest` configured with a `tests/fixtures/` directory for synthetic test data
 - [ ] **SETUP-05**: `pre-commit` hooks configured to run ruff and mypy before every commit
 - [ ] **SETUP-06**: GitHub Actions CI workflow runs ruff, mypy, and pytest on every push and pull request
-- [ ] **SETUP-07**: `.env.example` committed with placeholder values; `.env`, SQLite DB, and OAuth token cache in `.gitignore`
+- [x] **SETUP-07**: `.env.example` committed with placeholder values; `.env`, SQLite DB, and OAuth token cache in `.gitignore`
 
 ### Gmail Integration
 
@@ -83,13 +83,13 @@ Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SETUP-01 | Phase 1 | Pending |
-| SETUP-02 | Phase 1 | Pending |
-| SETUP-03 | Phase 1 | Pending |
+| SETUP-01 | Phase 1 | Complete |
+| SETUP-02 | Phase 1 | Complete |
+| SETUP-03 | Phase 1 | Complete |
 | SETUP-04 | Phase 1 | Pending |
 | SETUP-05 | Phase 1 | Pending |
 | SETUP-06 | Phase 1 | Pending |
-| SETUP-07 | Phase 1 | Pending |
+| SETUP-07 | Phase 1 | Complete |
 | GMAIL-01 | Phase 2 | Pending |
 | GMAIL-02 | Phase 2 | Pending |
 | GMAIL-03 | Phase 2 | Pending |
