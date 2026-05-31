@@ -32,7 +32,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `mypy shipping_tracker/` passes with zero type errors on the initial codebase
   4. `pytest` discovers and runs the test suite (zero tests is acceptable; zero failures is required)
   5. A `git commit` triggers pre-commit hooks (ruff + mypy) and the GitHub Actions workflow runs ruff, mypy, and pytest on push
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Package foundation: pyproject.toml, .gitignore, .env.example, shipping_tracker package with entry point, pipeline stub, logging config, and BaseParser ABC
+- [ ] 01-02-PLAN.md — Toolchain enforcement: pre-commit hooks, GitHub Actions CI, pytest infrastructure with smoke tests
 
 ### Phase 2: Gmail
 **Goal**: The tool authenticates to Gmail via OAuth2 and retrieves unread emails matching shipping sender patterns, producing a list of raw email objects for downstream processing.
@@ -99,7 +103,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffold | 0/TBD | Not started | - |
+| 1. Scaffold | 0/2 | Not started | - |
 | 2. Gmail | 0/TBD | Not started | - |
 | 3. Parser Layer | 0/TBD | Not started | - |
 | 4. Deduplication | 0/TBD | Not started | - |
