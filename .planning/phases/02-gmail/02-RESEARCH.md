@@ -689,22 +689,27 @@ senders = [s.strip() for s in os.getenv("GMAIL_SENDER_LIST", "").split(",") if s
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> All three resolved during Phase 2 planning (2026-05-31); resolutions are implemented in 02-01/02-02-PLAN.md.
 
 1. **Sender list source: `.env` config value vs. parser-derived domains**
    - What we know: `BaseParser.can_parse(email_body, sender)` already takes `sender`; each future parser knows which senders it handles
    - What's unclear: whether to let each parser declare its own `sender_domains: list[str]` and aggregate them, or keep a flat `GMAIL_SENDER_LIST` in `.env`
    - Recommendation: For Phase 2 (v1, AliExpress only), a flat `.env` value is simplest. The planner should add a note that Phase 3 will want to revisit this so the parser registration step can also register sender domains — reduces config drift when new parsers are added.
+   - **RESOLVED:** Flat `GMAIL_SENDER_LIST` in `.env` for Phase 2 (parsed in `main()`); Phase 3 can add parser-declared sender domains at parser registration.
 
 2. **`RawEmail.sender` field value: full `From:` header vs. extracted address only**
    - What we know: Gmail `From:` headers often look like `"AliExpress <shipping@mail.aliexpress.com>"`; `BaseParser.can_parse()` receives `sender` as a string
    - What's unclear: whether parsers should match against the full header string or just the email address part
    - Recommendation: Extract just the email address (the part inside `<>` if present, otherwise the whole value) to normalise across senders. This keeps `can_parse()` simple and consistent.
+   - **RESOLVED:** Extract the bare address (inside `<>` if present, else the whole value) via `_extract_sender()` in `client.py` (implemented in 02-02).
 
 3. **`token.json` file path on the Pi**
    - What we know: default `GMAIL_TOKEN_PATH=token.json` puts it in the working directory of the cron job
    - What's unclear: whether the cron working directory is predictable enough, or whether an absolute path is safer
    - Recommendation: Document in README that the cron `cd` line should set the working directory, and that `token.json` should be `chmod 600`. The planner can add a `.env.example` note.
+   - **RESOLVED:** `GMAIL_TOKEN_PATH` in `.env` (default `token.json`); cron `cd` + `chmod 600 token.json` documented in the Phase 6 README. Not a Phase 2 code concern.
 
 ---
 
