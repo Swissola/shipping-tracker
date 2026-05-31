@@ -17,7 +17,7 @@ def main() -> int:
 
     Phase 1 stub: loads environment, configures logging, and returns 0.
     Phases 2–5 wire in Gmail fetch, email parsing, deduplication, and
-    17track registration without changing this function's signature.
+    TrackingMore registration without changing this function's signature.
     """
     load_dotenv()
     configure_logging()

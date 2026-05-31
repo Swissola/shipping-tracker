@@ -2,7 +2,7 @@
 
 ## Overview
 
-Six phases build the tool in the natural order of dependencies: scaffold the project, connect to Gmail, parse emails, deduplicate with SQLite, wire the 17track API into a complete pipeline, then harden for production deployment. Each phase delivers a runnable vertical slice that proves the layer works before the next layer builds on it.
+The tool is built in the natural order of dependencies: scaffold the project, connect to Gmail, parse emails, deduplicate with SQLite, wire the TrackingMore API into a complete registration pipeline, add status monitoring with push notifications, then harden for production deployment. Each phase delivers a runnable vertical slice that proves the layer works before the next layer builds on it.
 
 ## Phases
 
@@ -16,7 +16,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 2: Gmail** - Tool authenticates to Gmail and retrieves unread shipping emails
 - [ ] **Phase 3: Parser Layer** - AliExpress emails parsed via pluggable BaseParser architecture
 - [ ] **Phase 4: Deduplication** - SQLite state layer enforces idempotency across all runs
-- [ ] **Phase 5: Pipeline** - 17track registration wired end-to-end; tool runs completely
+- [ ] **Phase 5: Pipeline** - TrackingMore registration wired end-to-end; tool runs completely
+- [ ] **Phase 5.1: Status Monitoring & Notifications** *(INSERTED)* - poll for status changes, push phone notifications
 - [ ] **Phase 6: Production** - Logging, deployment, and documentation make the tool cron-ready
 
 ## Phase Details
@@ -77,21 +78,38 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. On first run, both `processed_emails` and `registered_tracking` tables are created if they do not exist
   2. An email whose `message_id` is already in `processed_emails` is skipped entirely without re-parsing or re-querying the API
-  3. A tracking number already in `registered_tracking` is skipped without calling the 17track API
+  3. A tracking number already in `registered_tracking` is skipped without calling the TrackingMore API
   4. A simulated API failure leaves `registered_tracking` unwritten, so the same tracking number is attempted again on the next run
 **Plans**: TBD
 
 ### Phase 5: Pipeline
-**Goal**: The 17track API is integrated and every layer is wired together — Gmail fetch → parse → deduplicate → register — so the tool can complete a real end-to-end run.
+**Goal**: The TrackingMore API is integrated and every layer is wired together — Gmail fetch → parse → deduplicate → register — so the tool can complete a real end-to-end run.
 **Mode:** mvp
 **Depends on**: Phase 4
-**Requirements**: TRACK-01, TRACK-02, TRACK-03, TRACK-04
+**Requirements**: TRACK-01, TRACK-02, TRACK-03, TRACK-04, TRACK-05
 **Success Criteria** (what must be TRUE):
-  1. The tool reads `SEVENTEEN_TRACK_API_KEY` exclusively from `.env` and refuses to start if it is absent
-  2. A parsed tracking number not in the database is successfully registered via `POST /track/v2/register` and written to `registered_tracking` only after a confirmed success response
-  3. A duplicate-registration response from 17track (already registered) is logged and treated as success — no error is raised
-  4. A rate-limit or network error from 17track is logged and the run continues without crashing; the tracking number is not written to the database
+  1. The tool reads `TRACKINGMORE_API_KEY` exclusively from `.env` and refuses to start if it is absent
+  2. A parsed tracking number not in the database is successfully registered via TrackingMore's Create Trackings API (`POST https://api.trackingmore.com/v4/trackings/create`) and written to `registered_tracking` only after a confirmed success response
+  3. A duplicate / already-exists response from TrackingMore is logged and treated as success — no error is raised
+  4. A rate-limit, quota, or network error from TrackingMore is logged and the run continues without crashing; the tracking number is not written to the database
+  5. The courier is auto-detected by TrackingMore; the parser's carrier value is passed only as an optional `courier_code` hint and is never required for registration
 **Plans**: TBD
+
+### Phase 05.1: Status Monitoring and Notifications (INSERTED)
+**Goal**: The tool monitors in-flight parcels by polling TrackingMore for status changes and sends a push notification when a parcel moves — giving phone-side awareness ("out for delivery", "delivered") without any consumer app or home-screen widget, and without consuming the monthly registration quota.
+**Mode:** mvp
+**Depends on**: Phase 5
+**Requirements**: MONITOR-01, MONITOR-02, NOTIFY-01, NOTIFY-02, NOTIFY-03
+**Success Criteria** (what must be TRUE):
+  1. On each run, the tool fetches current status for all non-terminal (in-flight) tracked parcels in a single bulk TrackingMore call — never one call per parcel, and never for parcels already in a delivered/terminal state
+  2. Each parcel's last-known status is persisted in SQLite; a status that differs from the stored value is detected as a change and updates the stored value
+  3. When a parcel's status changes, the tool sends a push notification via a channel configured in `.env` (e.g. ntfy/Pushover/Telegram), and the notification body contains no PII (no email addresses, personal names, order references, or raw email bodies)
+  4. A notification or status-fetch failure is logged and never crashes the run
+  5. Status polling consumes no monthly registration quota (only new-tracking creation does) and does not poll faster than TrackingMore's carrier refresh cadence (~every 4–6 hours)
+**Plans**: TBD
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 05.1 to break down)
 
 ### Phase 6: Production
 **Goal**: The tool is production-ready: structured JSON logging keeps PII out of log files, the entry point runs cleanly as a cron job on Raspberry Pi OS Bookworm, and the README lets a new user go from zero to running in one sitting.
@@ -108,7 +126,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -117,4 +135,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Parser Layer | 0/TBD | Not started | - |
 | 4. Deduplication | 0/TBD | Not started | - |
 | 5. Pipeline | 0/TBD | Not started | - |
+| 5.1 Status Monitoring & Notifications | 0/TBD | Not started | - |
 | 6. Production | 0/TBD | Not started | - |

@@ -1,1 +1,1 @@
-"""shipping-tracker: Gmail → 17track automation."""
+"""shipping-tracker: Gmail → TrackingMore automation."""

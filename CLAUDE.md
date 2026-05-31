@@ -3,9 +3,9 @@
 
 **shipping-tracker**
 
-A Python automation tool that monitors Gmail for shipping notification emails, extracts tracking numbers and carrier information, and registers them with the 17track API. Designed to run unattended on a Raspberry Pi 5 as a scheduled cron job. Intended for open-source release once stable.
+A Python automation tool that monitors Gmail for shipping notification emails, extracts tracking numbers, registers them with the TrackingMore API, and pushes a phone notification when a parcel's status changes. Designed to run unattended on a Raspberry Pi 5 as a scheduled cron job. Intended for open-source release once stable.
 
-**Core Value:** An email arrives → a tracking number is registered with 17track, without any human intervention, without duplicates, and without ever exposing personal data.
+**Core Value:** An email arrives → a tracking number is registered with TrackingMore and you are notified on your phone when the parcel moves, without any human intervention, without duplicates, and without ever exposing personal data.
 
 ### Constraints
 
