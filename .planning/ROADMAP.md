@@ -13,7 +13,7 @@ The tool is built in the natural order of dependencies: scaffold the project, co
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Scaffold** - Project toolchain and package structure ready for development *(Planned — 2 plans)*
-- [ ] **Phase 2: Gmail** - Tool authenticates to Gmail and retrieves unread shipping emails
+- [x] **Phase 2: Gmail** - Tool authenticates to Gmail and retrieves unread shipping emails (completed 2026-05-31)
 - [ ] **Phase 3: Parser Layer** - AliExpress emails parsed via pluggable BaseParser architecture
 - [ ] **Phase 4: Deduplication** - SQLite state layer enforces idempotency across all runs
 - [ ] **Phase 5: Pipeline** - TrackingMore registration wired end-to-end; tool runs completely
@@ -65,7 +65,7 @@ Plans:
 - [x] 02-01-PLAN.md — Gmail foundation: install Google stack + stubs, add Gmail .env vars, create gmail package (auth/query/RawEmail contracts) + synthetic fixture and auth/query tests (GMAIL-01, GMAIL-03, GMAIL-02 query)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 02-02-PLAN.md — Fetch loop: implement fetch_unread_shipping_emails() (paginate, MIME/base64url decode, RawEmail list), wire into main(), client + LOG-02 PII-safety tests (GMAIL-02)
+- [x] 02-02-PLAN.md — Fetch loop: implement fetch_unread_shipping_emails() (paginate, MIME/base64url decode, RawEmail list), wire into main(), client + LOG-02 PII-safety tests (GMAIL-02)
 
 ### Phase 3: Parser Layer
 **Goal**: AliExpress shipping notification emails are parsed to extract tracking number and carrier via a pluggable BaseParser architecture that makes adding future parsers a drop-in operation.
@@ -139,7 +139,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Scaffold | 2/2 | Complete   | 2026-05-31 |
-| 2. Gmail | 1/2 | In Progress|  |
+| 2. Gmail | 2/2 | Complete   | 2026-05-31 |
 | 3. Parser Layer | 0/TBD | Not started | - |
 | 4. Deduplication | 0/TBD | Not started | - |
 | 5. Pipeline | 0/TBD | Not started | - |
