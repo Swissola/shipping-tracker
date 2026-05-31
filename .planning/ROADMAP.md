@@ -40,7 +40,7 @@ Plans:
 - [x] 01-01-PLAN.md — Package foundation: pyproject.toml, .gitignore, .env.example, shipping_tracker package with entry point, pipeline stub, logging config, and BaseParser ABC
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 01-02-PLAN.md — Toolchain enforcement: pre-commit hooks, GitHub Actions CI, pytest infrastructure with smoke tests
+- [x] 01-02-PLAN.md — Toolchain enforcement: pre-commit hooks, GitHub Actions CI, pytest infrastructure with smoke tests
 
 **Cross-cutting constraints:**
 - Privacy: `.env`, `*.db`, `token.json` must be in `.gitignore` before any secret is written (01-01)
@@ -112,7 +112,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffold | 1/2 | In Progress|  |
+| 1. Scaffold | 2/2 | Complete   | 2026-05-31 |
 | 2. Gmail | 0/TBD | Not started | - |
 | 3. Parser Layer | 0/TBD | Not started | - |
 | 4. Deduplication | 0/TBD | Not started | - |
