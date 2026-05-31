@@ -18,7 +18,10 @@ FAKE_GMAIL_MESSAGE: dict[str, object] = {
                 "mimeType": "text/plain",
                 "body": {
                     # base64url of "Your order has shipped!\nTracking: FAKE1234567890\n"
-                    "data": "WW91ciBvcmRlciBoYXMgc2hpcHBlZCEKVHJhY2tpbmc6IEZBS0UxMjM0NTY3ODkwCg",
+                    "data": (
+                        "WW91ciBvcmRlciBoYXMgc2hpcHBlZCEKVHJhY2tpbmc6"
+                        "IEZBS0UxMjM0NTY3ODkwCg"
+                    ),
                 },
             }
         ],
