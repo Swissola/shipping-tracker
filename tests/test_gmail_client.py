@@ -176,3 +176,17 @@ def test_fetch_does_not_log_pii(caplog: pytest.LogCaptureFixture) -> None:
     assert "FAKE1234567890" not in caplog.text, (
         "Log must not contain body content (LOG-02)"
     )
+
+
+def test_main_calls_fetch_and_returns_zero() -> None:
+    """main() invokes fetch_unread_shipping_emails and returns 0 (no network)."""
+    from shipping_tracker.main import main
+
+    with patch(
+        "shipping_tracker.main.fetch_unread_shipping_emails",
+        return_value=[],
+    ) as mock_fetch:
+        result = main()
+
+    assert result == 0
+    mock_fetch.assert_called_once()

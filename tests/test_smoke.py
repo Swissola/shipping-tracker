@@ -37,17 +37,13 @@ def test_tracking_info_dataclass() -> None:
     assert ti.carrier == "FAKECARRIER"
 
 
-def test_entry_point_exits_zero() -> None:
-    """python -m shipping_tracker exits with return code 0."""
-    result = subprocess.run(
-        ["python", "-m", "shipping_tracker"],
-        capture_output=True,
-    )
-    assert result.returncode == 0
-
-
 def test_entry_point_no_stdout() -> None:
-    """python -m shipping_tracker produces no stdout output (cron silence — D-07)."""
+    """python -m shipping_tracker produces no stdout (cron silence — D-07).
+
+    Phase 2+: the tool exits 1 when Gmail credentials are absent (no
+    credentials.json in the working directory), but it must never write
+    to stdout regardless of exit code.
+    """
     result = subprocess.run(
         ["python", "-m", "shipping_tracker"],
         capture_output=True,
