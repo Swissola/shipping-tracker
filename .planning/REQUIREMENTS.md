@@ -17,9 +17,9 @@
 
 ### Gmail Integration
 
-- [ ] **GMAIL-01**: Tool authenticates to Gmail via OAuth2 (`google-api-python-client`, `google-auth-oauthlib`)
-- [ ] **GMAIL-02**: Tool polls for unread emails matching known shipping sender patterns
-- [ ] **GMAIL-03**: OAuth token cache (e.g. `token.json`) persists across runs so no browser interaction is needed after initial setup
+- [x] **GMAIL-01**: Tool authenticates to Gmail via OAuth2 (`google-api-python-client`, `google-auth-oauthlib`)
+- [x] **GMAIL-02**: Tool polls for unread emails matching known shipping sender patterns
+- [x] **GMAIL-03**: OAuth token cache (e.g. `token.json`) persists across runs so no browser interaction is needed after initial setup
 
 ### Parser Layer
 
@@ -102,9 +102,9 @@ Updated during roadmap creation and the TrackingMore provider replan (2026-05-31
 | SETUP-05 | Phase 1 | Complete |
 | SETUP-06 | Phase 1 | Complete |
 | SETUP-07 | Phase 1 | Complete |
-| GMAIL-01 | Phase 2 | Pending |
-| GMAIL-02 | Phase 2 | Pending |
-| GMAIL-03 | Phase 2 | Pending |
+| GMAIL-01 | Phase 2 | Complete |
+| GMAIL-02 | Phase 2 | Complete |
+| GMAIL-03 | Phase 2 | Complete |
 | PARSE-01 | Phase 3 | Pending |
 | PARSE-02 | Phase 3 | Pending |
 | PARSE-03 | Phase 3 | Pending |
