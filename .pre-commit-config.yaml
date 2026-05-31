@@ -6,12 +6,17 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.1.0
+  # Local hook: run mypy from the project venv (where all runtime deps + type
+  # stubs are installed) so the gate matches CI / `mypy ... --strict` exactly.
+  # Avoids mirrors-mypy's isolated venv needing every typed dep mirrored in
+  # additional_dependencies (which silently drifts as new deps are added).
+  # Requires `pip install -e ".[dev]"` in the active environment.
+  - repo: local
     hooks:
       - id: mypy
-        args: [--strict]
-        additional_dependencies:
-          - httpx
-          - structlog
-          - python-dotenv
+        name: mypy (strict, project venv)
+        entry: python -m mypy
+        language: system
+        args: ["--strict", "shipping_tracker/", "tests/"]
+        pass_filenames: false
+        types: [python]
