@@ -113,9 +113,7 @@ def _extract_sender(message: dict[str, Any]) -> str:
 
     PRIVACY: Caller must not log the return value (contains email address).
     """
-    headers: list[dict[str, str]] = (
-        message.get("payload", {}).get("headers", [])
-    )
+    headers: list[dict[str, str]] = message.get("payload", {}).get("headers", [])
     from_value = ""
     for header in headers:
         if header.get("name", "").lower() == "from":
