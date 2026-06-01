@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-31)
 Phase: 05.1
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-06-01
+Last activity: 2026-06-01 - Completed quick task 260601-pa7: make register_and_persist self-defending (WR-01)
 
 Progress: [██████████] 100%
 
@@ -103,6 +103,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260601-kp7 | CLAUDE.md routing guardrail + record WR-04 PII-logging hardening (1c5b347) | 2026-06-01 | 89ec5a6 | [260601-kp7-add-claude-md-guardrail-routing-conversa](./quick/260601-kp7-add-claude-md-guardrail-routing-conversa/) |
+| 260601-pa7 | Make register_and_persist self-defending (WR-01): INSERT OR IGNORE + idempotency docstring + no-op test | 2026-06-01 | 5a58eaf | [260601-pa7-make-register-and-persist-in-shipping-tr](./quick/260601-pa7-make-register-and-persist-in-shipping-tr/) |
 
 ## Deferred Items
 
