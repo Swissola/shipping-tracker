@@ -81,7 +81,7 @@ def test_extract_does_not_log_pii(caplog: pytest.LogCaptureFixture) -> None:
 
 def test_dispatch_matched_email() -> None:
     """Dispatch loop yields TrackingInfo for a matched, shipped email."""
-    from shipping_tracker.main import PARSERS  # type: ignore[attr-defined]
+    from shipping_tracker.main import PARSERS
 
     email = RawEmail(
         message_id="FAKEMSGID001",
@@ -101,7 +101,7 @@ def test_dispatch_matched_email() -> None:
 
 def test_dispatch_no_match_skips() -> None:
     """Dispatch loop skips emails that no parser claims."""
-    from shipping_tracker.main import PARSERS  # type: ignore[attr-defined]
+    from shipping_tracker.main import PARSERS
 
     email = RawEmail(
         message_id="FAKEMSGID002",
@@ -118,7 +118,7 @@ def test_dispatch_no_match_skips() -> None:
 
 def test_dispatch_preshipment_skips() -> None:
     """Dispatch loop yields no TrackingInfo for a matched pre-shipment email (D-05)."""
-    from shipping_tracker.main import PARSERS  # type: ignore[attr-defined]
+    from shipping_tracker.main import PARSERS
 
     email = RawEmail(
         message_id="FAKEMSGID003",
@@ -137,7 +137,7 @@ def test_dispatch_preshipment_skips() -> None:
 
 def test_registry_drop_in() -> None:
     """A second parser appended to PARSERS is discoverable via can_parse."""
-    from shipping_tracker.main import PARSERS  # type: ignore[attr-defined]
+    from shipping_tracker.main import PARSERS
 
     class FakeParser(BaseParser):
         def can_parse(self, email_body: str, sender: str) -> bool:
