@@ -10,6 +10,9 @@ credentials.json
 # Logs directory
 logs/
 
+# Runtime data directory (SQLite DB; covered by *.db above but listed explicitly for clarity)
+data/
+
 # Python
 __pycache__/
 *.py[cod]
