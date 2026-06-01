@@ -128,12 +128,18 @@ Updated during roadmap creation and the TrackingMore provider replan (2026-05-31
 | LOG-03 | Phase 6 | Pending |
 | DEPLOY-01 | Phase 6 | Pending |
 | DEPLOY-02 | Phase 6 | Pending |
+| PARSE2-01 | v2 (deferred) | Not started |
+| PARSE2-02 | v2 (deferred) | Not started |
+| PARSE2-03 | v2 (deferred) | Not started |
+| PARSE2-04 | v2 (deferred) | Not started |
+| PROV-01 | v2 (deferred) | Not started |
 
 **Coverage:**
 - v1 requirements: 33 total
-- Mapped to phases: 33
+- Mapped to v1 phases: 33
 - Unmapped: 0 ✓
+- v2 requirements: 5 total (PARSE2-01..04, PROV-01) — deferred to the next milestone; listed here for traceability only, not part of the v1.0 scope
 
 ---
 *Requirements defined: 2026-05-31*
-*Last updated: 2026-05-31 after TrackingMore provider replan (status monitoring + notifications added)*
+*Last updated: 2026-06-01 — added v2 (deferred) rows to traceability table so future-milestone REQ-IDs are tracked, not flagged as unmapped*
