@@ -341,6 +341,8 @@ def test_main_dispatch_loop_logs_pii_safely_on_error(
     )
 
     # No-op logging setup so caplog captures cleanly and no log file is written.
+    # Use in-memory SQLite so no side-effect DB file is created during the test.
+    monkeypatch.setenv("DATABASE_PATH", ":memory:")
     monkeypatch.setattr(main_mod, "configure_logging", lambda: None)
     monkeypatch.setattr(
         main_mod, "fetch_unread_shipping_emails", lambda senders, window: [email]
@@ -352,8 +354,9 @@ def test_main_dispatch_loop_logs_pii_safely_on_error(
         with caplog.at_level("DEBUG"):
             assert main_mod.main() == 0  # one bad email never aborts the run
 
+        # Phase 4: log key renamed from parser.dispatch.error to pipeline.error (WR-04)
         error_records = [
-            r for r in caplog.records if "parser.dispatch.error" in r.getMessage()
+            r for r in caplog.records if "pipeline.error" in r.getMessage()
         ]
         assert error_records, "expected a dispatch-error log record"
         for record in caplog.records:

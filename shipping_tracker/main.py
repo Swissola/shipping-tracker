@@ -1,14 +1,25 @@
-"""Pipeline orchestrator — Gmail fetch and parser dispatch wired in Phase 3."""
+"""Pipeline orchestrator — Gmail fetch, parser dispatch, and dedup wiring (Phase 4)."""
 
+from __future__ import annotations
+
+import datetime
 import logging
 import os
+import sqlite3
 
 from dotenv import load_dotenv
 
+from shipping_tracker.db import (
+    init_db,
+    is_email_processed,
+    is_tracking_registered,
+    register_and_persist,
+)
 from shipping_tracker.gmail import fetch_unread_shipping_emails
 from shipping_tracker.logging_config import configure_logging
 from shipping_tracker.parsers.aliexpress import AliExpressParser
 from shipping_tracker.parsers.base import BaseParser, TrackingInfo
+from shipping_tracker.registrar import NullRegistrar, Registrar
 
 logger = logging.getLogger(__name__)
 
@@ -45,65 +56,103 @@ def main() -> int:
     Returns:
         0 on success, non-zero on unrecoverable error.
 
-    Phase 3: loads environment, configures logging, fetches unread shipping
-    emails via Gmail API, dispatches each email through the parser registry
-    (first-match-wins, D-03), collects TrackingInfo results, and returns 0.
-    Phases 4–5 wire in deduplication and TrackingMore registration without
-    changing this function's signature.
+    Phase 4: opens one SQLite connection per run, inits the schema once, injects
+    a NullRegistrar seam, and threads the connection through the dedup-wired
+    dispatch loop. Phase 5 swaps NullRegistrar for TrackingMoreRegistrar with zero
+    changes to db.py or this loop.
     """
     load_dotenv()
     configure_logging()
 
-    senders = _get_all_sender_domains()
-    window = int(os.getenv("GMAIL_LOOKBACK_DAYS", "30"))
+    db_path = os.getenv("DATABASE_PATH", "data/shipping-tracker.db")
+    os.makedirs(os.path.dirname(db_path) or "data", exist_ok=True)
+    conn = sqlite3.connect(db_path)
 
     try:
-        emails = fetch_unread_shipping_emails(senders, window)
-    except FileNotFoundError as exc:
-        logger.error("gmail.credentials.missing path=%s", exc.filename)
-        return 1
+        init_db(conn)
+        registrar: Registrar = NullRegistrar()
 
-    # WR-03: gmail.client already logs "gmail.fetch.complete" at INFO — the
-    # duplicate WARNING emission that used to live here has been removed so
-    # there is a single source of truth for that log line.
+        senders = _get_all_sender_domains()
+        window = int(os.getenv("GMAIL_LOOKBACK_DAYS", "30"))
 
-    tracking_results: list[TrackingInfo] = []
-    for email in emails:
-        # WR-04: isolate each email's dispatch so one malformed body that makes
-        # a parser raise is logged PII-safely (message_id only — LOG-02),
-        # skipped, and the batch continues. One bad email never aborts the run.
         try:
-            matched = False
-            for parser in PARSERS:
-                if parser.can_parse(email.body, email.sender):
-                    matched = True
-                    result = parser.extract(email.body)
-                    if result is None:
-                        # Expected for pre-shipment "order confirmed" emails (D-05)
-                        logger.debug("parser.no_tracking id=%s", email.message_id)
-                    else:
-                        tracking_results.append(result)
-                    break  # first match wins (D-03)
-            if not matched:
-                logger.info("parser.no_match id=%s", email.message_id)
-        except Exception as exc:
-            # PII-safe: log message_id + exception TYPE only (LOG-02). We do
-            # NOT use logger.exception here — the traceback and the exception's
-            # own message could embed email content if a third-party parser
-            # raised e.g. ValueError(f"bad body: {body}"). type(exc).__name__
-            # is structural, never PII. See BaseParser.extract contract note.
-            logger.error(
-                "parser.dispatch.error id=%s type=%s",
-                email.message_id,
-                type(exc).__name__,
-            )
-            continue
+            emails = fetch_unread_shipping_emails(senders, window)
+        except FileNotFoundError as exc:
+            logger.error("gmail.credentials.missing path=%s", exc.filename)
+            return 1
 
-    # WR-03: routine end-of-run summary belongs at INFO, not WARNING, so
-    # WARNING-level alerting does not false-alarm on every healthy cron run.
-    logger.info(
-        "parser.dispatch.complete total=%d parsed=%d",
-        len(emails),
-        len(tracking_results),
-    )
+        # WR-03: gmail.client already logs "gmail.fetch.complete" at INFO — the
+        # duplicate WARNING emission that used to live here has been removed so
+        # there is a single source of truth for that log line.
+
+        tracking_results: list[TrackingInfo] = []
+        for email in emails:
+            # WR-04: isolate each email's dispatch so one malformed body that makes
+            # a parser or registrar raise is logged PII-safely (message_id only —
+            # LOG-02), skipped, and the batch continues. One bad email never aborts
+            # the run.
+            try:
+                # DEDUP-03: skip already-processed email (before any parse work)
+                if is_email_processed(conn, email.message_id):
+                    logger.debug("dedup.email.skip id=%s", email.message_id)
+                    continue
+
+                matched = False
+                result: TrackingInfo | None = None
+                for parser in PARSERS:
+                    if parser.can_parse(email.body, email.sender):
+                        matched = True
+                        result = parser.extract(email.body)
+                        break  # first match wins (D-03)
+
+                if not matched:
+                    logger.info("parser.no_match id=%s", email.message_id)
+                    continue
+                if result is None:
+                    # Expected for pre-shipment "order confirmed" emails (D-02)
+                    logger.debug("parser.no_tracking id=%s", email.message_id)
+                    continue  # D-02: left unmarked, re-evaluated next run
+
+                # DEDUP-04: tracking already registered (duplicate-notification email)
+                if is_tracking_registered(conn, result.tracking_number):
+                    logger.debug("dedup.tracking.skip id=%s", email.message_id)
+                    # D-03: mark this email done to avoid re-parse churn
+                    now = datetime.datetime.now(datetime.UTC).isoformat()
+                    with conn:
+                        conn.execute(
+                            "INSERT OR IGNORE INTO processed_emails VALUES (?, ?)",
+                            (email.message_id, now),
+                        )
+                    continue
+
+                # DEDUP-05: register-then-persist (atomic)
+                persisted = register_and_persist(
+                    conn, email.message_id, result.tracking_number, registrar
+                )
+                if persisted:
+                    tracking_results.append(result)
+
+            except Exception as exc:
+                # WR-04: PII-safe — log message_id + exception TYPE only (LOG-02).
+                # NOT logger.exception — the traceback and exception message could
+                # embed email content if a parser/registrar raised e.g.
+                # ValueError(f"bad body: {body}"). type(exc).__name__ is structural,
+                # never PII.
+                logger.error(
+                    "pipeline.error id=%s type=%s",
+                    email.message_id,
+                    type(exc).__name__,
+                )
+                continue
+
+        # WR-03: routine end-of-run summary belongs at INFO, not WARNING, so
+        # WARNING-level alerting does not false-alarm on every healthy cron run.
+        logger.info(
+            "parser.dispatch.complete total=%d parsed=%d",
+            len(emails),
+            len(tracking_results),
+        )
+    finally:
+        conn.close()
+
     return 0
