@@ -8,14 +8,14 @@ import datetime
 import sqlite3
 
 import pytest
-from shipping_tracker.db import (  # type: ignore[import-not-found]
+
+from shipping_tracker.db import (
     init_db,
     is_email_processed,
     is_tracking_registered,
     register_and_persist,
 )
-from shipping_tracker.registrar import NullRegistrar  # type: ignore[import-not-found]
-
+from shipping_tracker.registrar import NullRegistrar
 from tests.fixtures.fake_db import (
     FAKE_MESSAGE_ID_1,
     FAKE_MESSAGE_ID_2,

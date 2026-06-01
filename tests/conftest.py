@@ -9,7 +9,8 @@ import sqlite3
 from collections.abc import Generator
 
 import pytest
-from shipping_tracker.db import init_db  # type: ignore[import-not-found]
+
+from shipping_tracker.db import init_db
 
 
 @pytest.fixture
