@@ -97,7 +97,7 @@ None yet.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 260601-kp7 | CLAUDE.md routing guardrail + record WR-04 PII-logging hardening (1c5b347) | 2026-06-01 | 84f3a5f | [260601-kp7-add-claude-md-guardrail-routing-conversa](./quick/260601-kp7-add-claude-md-guardrail-routing-conversa/) |
+| 260601-kp7 | CLAUDE.md routing guardrail + record WR-04 PII-logging hardening (1c5b347) | 2026-06-01 | 89ec5a6 | [260601-kp7-add-claude-md-guardrail-routing-conversa](./quick/260601-kp7-add-claude-md-guardrail-routing-conversa/) |
 
 ## Deferred Items
 
