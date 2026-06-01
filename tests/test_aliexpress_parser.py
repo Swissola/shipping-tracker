@@ -159,3 +159,64 @@ def test_registry_drop_in() -> None:
             break
     assert matched_parser is not None
     assert isinstance(matched_parser, FakeParser)
+
+
+# --- CR-01: over-length tracking numbers must not be silently truncated ------
+
+
+def test_extract_overlength_token_not_truncated() -> None:
+    """CR-01: a >35-char label token yields no truncated TrackingInfo.
+
+    The 35-char capture cap used to silently truncate an over-length token,
+    registering a corrupted number. It must now either match the full token or
+    not match at all — never a partial value.
+    """
+    parser = AliExpressParser()
+    # 38-char synthetic token (all FAKE-prefixed, no real carrier number).
+    over_length = "FAKELP" + "0" * 32  # 38 chars
+    body = f"Tracking number: {over_length} ships soon"
+    result = parser.extract(body)
+    if result is not None:
+        # If anything matched, it must be the full token, never a truncation.
+        assert result.tracking_number == over_length.upper()
+        assert len(result.tracking_number) != 35
+    # Critically: the first-35-char truncation must NOT appear.
+    truncated = over_length[:35]
+    assert result is None or result.tracking_number != truncated
+
+
+# --- WR-01: shape fallback must not false-match ordinary contiguous tokens ---
+
+
+@pytest.mark.parametrize("token", ["HTTP200OK", "ISO9001CERT", "ABC123XYZ"])
+def test_extract_shape_rejects_ordinary_tokens(token: str) -> None:
+    """WR-01: SKU / cert / protocol tokens are not extracted as tracking numbers."""
+    parser = AliExpressParser()
+    body = f"Reference {token} in our catalogue footer."
+    assert parser.extract(body) is None
+
+
+def test_extract_shape_rejects_numeric_order_ref() -> None:
+    """WR-01/Pitfall 2: a purely-numeric order reference is rejected."""
+    parser = AliExpressParser()
+    assert parser.extract("Order reference: 500FAKE123456789") is None
+
+
+def test_extract_shape_still_matches_real_shape() -> None:
+    """WR-01: a genuine AliExpress-shaped token still extracts via shape fallback."""
+    parser = AliExpressParser()
+    result = parser.extract(FAKE_ALIEXPRESS_NOLABEL_BODY)
+    assert result is not None
+    assert result.tracking_number == "FAKEYT00000FAKE0001"
+
+
+# --- WR-02: captured tracking numbers are normalised to upper-case -----------
+
+
+def test_extract_normalises_lowercase_to_upper() -> None:
+    """WR-02: a lowercase label token is stored upper-cased (dedup safety)."""
+    parser = AliExpressParser()
+    body = "Tracking number: fakelp00fake00001 is on its way"
+    result = parser.extract(body)
+    assert result is not None
+    assert result.tracking_number == "FAKELP00FAKE00001"
