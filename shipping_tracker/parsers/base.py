@@ -53,5 +53,11 @@ class BaseParser(ABC):
             TrackingInfo with tracking_number populated, or None if the email
             matches but contains no tracking number (e.g., pre-shipment order
             confirmation emails — expected routine case per D-05).
+
+        Note (LOG-02): if an implementation raises, its exception message MUST
+        NOT contain email content (body, sender, tracking number, order refs).
+        The dispatch loop logs only the message_id and the exception type — it
+        deliberately suppresses the traceback — but a parser that embeds PII in
+        an exception string would defeat that guarantee.
         """
         ...

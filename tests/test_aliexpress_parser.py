@@ -309,11 +309,16 @@ def test_dispatch_isolates_raising_parser() -> None:
 
 def test_main_dispatch_loop_logs_pii_safely_on_error(
     caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """WR-04/LOG-02 (strengthens IN-01): error log carries message_id only.
+    """WR-04/LOG-02: the real main() dispatch never leaks PII when a parser raises.
 
-    Now that the dispatch loop emits a real log record on parser failure, assert
-    that record contains the message_id but never the body or tracking text.
+    Drives the actual ``main()`` (not a re-implemented loop) with a parser whose
+    exception message *itself* embeds the email body and tracking number — the
+    exact leak vector ``logger.exception`` would render via the log config's
+    ``format_exc_info`` processor. Asserts the error record carries only the
+    message_id and the exception *type*, attaches no traceback (``exc_info`` is
+    None), and that no PII appears in any record.
     """
     from shipping_tracker import main as main_mod
 
@@ -324,7 +329,10 @@ def test_main_dispatch_loop_logs_pii_safely_on_error(
             return True
 
         def extract(self, email_body: str) -> TrackingInfo | None:
-            raise ValueError("synthetic parser failure")
+            # PII deliberately placed in the exception message — a careless
+            # third-party parser could do this; the dispatch loop must not
+            # surface it (no exc_info, message_id + type only).
+            raise ValueError(f"parse failed on {email_body}")
 
     email = RawEmail(
         message_id="FAKEMSGID_PII",
@@ -332,24 +340,29 @@ def test_main_dispatch_loop_logs_pii_safely_on_error(
         body="SECRETBODY FAKELP00FAKE00001",
     )
 
+    # No-op logging setup so caplog captures cleanly and no log file is written.
+    monkeypatch.setattr(main_mod, "configure_logging", lambda: None)
+    monkeypatch.setattr(
+        main_mod, "fetch_unread_shipping_emails", lambda senders, window: [email]
+    )
+
     original = list(main_mod.PARSERS)
     try:
-        main_mod.PARSERS.insert(0, ExplodingParser())
+        main_mod.PARSERS[:] = [ExplodingParser()]
         with caplog.at_level("DEBUG"):
-            for parser in main_mod.PARSERS:
-                try:
-                    if parser.can_parse(email.body, email.sender):
-                        parser.extract(email.body)
-                        break
-                except Exception:
-                    main_mod.logger.exception(
-                        "parser.dispatch.error id=%s", email.message_id
-                    )
-                    break
-        assert caplog.records, "expected an error log record"
+            assert main_mod.main() == 0  # one bad email never aborts the run
+
+        error_records = [
+            r for r in caplog.records if "parser.dispatch.error" in r.getMessage()
+        ]
+        assert error_records, "expected a dispatch-error log record"
         for record in caplog.records:
-            assert "SECRETBODY" not in record.getMessage()
-            assert "FAKELP00FAKE00001" not in record.getMessage()
-        assert any("FAKEMSGID_PII" in r.getMessage() for r in caplog.records)
+            rendered = record.getMessage()
+            assert "SECRETBODY" not in rendered
+            assert "FAKELP00FAKE00001" not in rendered
+            assert record.exc_info is None  # no traceback attached → nothing to render
+        err = error_records[0]
+        assert "FAKEMSGID_PII" in err.getMessage()
+        assert "ValueError" in err.getMessage()  # exception type is safe to log
     finally:
         main_mod.PARSERS[:] = original

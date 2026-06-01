@@ -86,9 +86,17 @@ def main() -> int:
                     break  # first match wins (D-03)
             if not matched:
                 logger.info("parser.no_match id=%s", email.message_id)
-        except Exception:
-            # PII-safe: log message_id only, never body or sender (LOG-02).
-            logger.exception("parser.dispatch.error id=%s", email.message_id)
+        except Exception as exc:
+            # PII-safe: log message_id + exception TYPE only (LOG-02). We do
+            # NOT use logger.exception here — the traceback and the exception's
+            # own message could embed email content if a third-party parser
+            # raised e.g. ValueError(f"bad body: {body}"). type(exc).__name__
+            # is structural, never PII. See BaseParser.extract contract note.
+            logger.error(
+                "parser.dispatch.error id=%s type=%s",
+                email.message_id,
+                type(exc).__name__,
+            )
             continue
 
     # WR-03: routine end-of-run summary belongs at INFO, not WARNING, so
