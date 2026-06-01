@@ -304,17 +304,153 @@ separate gate after execution: treat its findings as first-class even when every
 
 ---
 
+## Step 5 — Phase 4: Deduplication
+
+**Goal:** build the SQLite state layer that makes the whole pipeline idempotent — an email is
+never re-processed, a tracking number is never re-registered, and a *failed* registration is
+retried automatically on the next run. Two tables (`processed_emails` and `registered_tracking`)
+whose schemas are locked by DEDUP-01 and DEDUP-02. The phase also introduces an injectable
+**registrar seam** with a `NullRegistrar` placeholder, so the DEDUP-05 retry guarantee is
+provable *before* the real TrackingMore client exists.
+
+### 5a. Discuss & research
+
+`/gsd-discuss-phase 4` produced twelve locked decisions, all recorded in
+[`04-CONTEXT.md`](.planning/phases/04-deduplication/04-CONTEXT.md) and verified by
+stdlib-only probes before a line of code was written
+([`04-RESEARCH.md`](.planning/phases/04-deduplication/04-RESEARCH.md), 2026-06-01).
+
+The central architectural question was **write timing**: when exactly do rows land in
+`processed_emails` and `registered_tracking`? The answer (D-01) is strict — both rows are
+written together in a single `with conn:` transaction, **only on confirmed registrar success**.
+A failure (exception or a `False` return from the registrar) writes neither row, logs
+PII-safely, and continues. The email is therefore *unseen* on the next cron run and the
+tracking number retries automatically. This satisfies DEDUP-05 by construction.
+
+Three finer decisions flow from D-01:
+
+- **D-02:** emails with no tracking number or no parser match are left **unmarked** in
+  `processed_emails`. Their body is immutable and re-parseable cheaply every run (local
+  regex, no API call) until they age out of the Gmail lookback window. This keeps them open
+  to re-evaluation if a parser is later improved.
+- **D-03:** when a fresh email arrives whose tracking number is *already* in
+  `registered_tracking` (a duplicate-notification email arriving under a new `message_id`),
+  the API call is skipped **and** the new `message_id` is written to `processed_emails` via
+  `INSERT OR IGNORE` — eliminating re-parse churn for notification duplicates.
+- **D-08/D-09 (the seam):** Phase 4 owns the register-then-persist orchestration behind an
+  **injectable registrar callable**. The `NullRegistrar` placeholder always returns `False`
+  and logs a single `registrar.deferred` line at debug — no WARNING noise on live Phase 4
+  runs. Phase 5 drops the real `TrackingMoreRegistrar` into the same seam with **zero
+  changes** to `db.py` or the dispatch loop.
+
+Other decisions locked: the state layer as a **module of plain functions** in `db.py` (no
+class, connection passed in explicitly — D-04); one connection per run, opened in `main()`
+and closed in `finally` (D-05); schema built exactly to DEDUP-01/02 with no speculative
+`provider` column (D-06, deferred to a v2 `ALTER TABLE`); and `PRAGMA busy_timeout = 5000`
+plus `PRAGMA user_version = 1` set on connect/creation (D-10/D-11).
+
+Research verified the `with conn:` atomic two-row write, the `typing.Protocol` Registrar
+contract, and ran a retry-proof probe in-process before any code was written.
+
+### 5b. Plan & execute — three waves
+
+Planning produced 3 plans across 3 strictly-sequential waves:
+
+- **Wave 0 — `04-01` (RED scaffold):** 15 failing DEDUP test functions in `tests/test_db.py`,
+  `FAKE`-prefixed fixture constants in `tests/fixtures/fake_db.py`, and an in-memory
+  `db_conn` fixture in `tests/conftest.py` — all authored *before* the source modules exist.
+  Pre-commit mypy required `# type: ignore[import-not-found]` on the not-yet-written
+  `shipping_tracker.db` imports (standard Nyquist Wave 0 pattern). The 15 tests covered
+  DEDUP-01 through DEDUP-05 including the `test_retry_proof` integration test. Commits
+  `fad212a`, `d54951d`.
+
+- **Wave 1 — `04-02` (the state layer):** `shipping_tracker/db.py` (`init_db`,
+  `is_email_processed`, `is_tracking_registered`, `register_and_persist`) plus
+  `shipping_tracker/registrar.py` (the `Registrar` `typing.Protocol` and `NullRegistrar`).
+  The atomic `with conn:` two-row write turned all 15 RED tests GREEN; 57/57 full-suite
+  passing. Wave 0's `# type: ignore[import-not-found]` comments were removed as a
+  pre-commit-caught `[unused-ignore]` deviation. Commit `7b886c0`.
+
+- **Wave 3 — `04-03` (main wiring):** the SQLite connection lifecycle (`sqlite3.connect` →
+  `init_db` → `finally: conn.close()`) in `main()`, `NullRegistrar` seam injection, and the
+  DEDUP-03 (before parse) / DEDUP-04 (`INSERT OR IGNORE` mark-processed in D-03 branch) /
+  DEDUP-05 (`register_and_persist`) checks wired into the dispatch loop. `DATABASE_PATH`
+  added to `.env.example`, `data/` added to `.gitignore`. Commits `f36566b`, `eb62b96`.
+
+### 5c. The course-correction: `INSERT OR IGNORE` and the self-undercut retry guarantee ⚠️
+
+This is the instructive moment of Phase 4 — the code-review equivalent of the Step 3
+CR-01/CR-02 bugs that green tests did not catch.
+
+After execution, all 15 DEDUP tests were green (58/58 full suite), and goal-backward
+verification scored 4/4 — all observable truths confirmed against the code, including the
+`test_retry_proof` integration test. The automated `/gsd-code-review` gate
+([`04-REVIEW.md`](.planning/phases/04-deduplication/04-REVIEW.md)) still flagged **WR-01**:
+`register_and_persist` in `db.py` wrote both rows with a bare, non-idempotent `INSERT`,
+while the DEDUP-04 mark-processed branch in `main.py` used `INSERT OR IGNORE`. The two write
+paths to the same table **disagreed on idempotency**.
+
+The consequence: `register_and_persist` — the function at the very heart of the phase's retry
+guarantee — was itself not retry-safe. A future caller, or a crash-window re-registration
+where the registrar had already succeeded but the DB commit had not landed, would hit an
+already-present row and raise `sqlite3.IntegrityError` mid-transaction. The verifier assessed
+it as a WARNING rather than a blocking defect (the upstream `is_tracking_registered` guard in
+`main()` prevented the bad call in the normal dispatch path, so SC4 held *as wired*), but
+recorded it for a mandatory follow-up.
+
+It was fixed via quick task `260601-pa7`: both `INSERT` statements in `register_and_persist`
+became `INSERT OR IGNORE`, and a `test_register_and_persist_idempotent` regression test was
+added to prove a repeat call is a silent no-op returning `True`. Commit `5a58eaf`. The two
+write paths now agree; the function is self-defending regardless of caller.
+
+### 5d. Verify & the honest deferred state
+
+Goal-backward verification ([`04-VERIFICATION.md`](.planning/phases/04-deduplication/04-VERIFICATION.md),
+2026-06-01) confirmed 4/4 observable truths and all five DEDUP requirements
+(DEDUP-01 through DEDUP-05) true against the code:
+
+- SC1 (table creation): `CREATE TABLE IF NOT EXISTS` in `init_db`; `test_init_db_*` GREEN.
+- SC2 (email dedup): `is_email_processed` guard before any parse work; `test_dispatch_skips_processed_email` GREEN.
+- SC3 (tracking dedup): `is_tracking_registered` guard + `INSERT OR IGNORE` mark-processed; `test_dispatch_skips_registered_tracking` and `test_dup_notification_marks_email_processed` GREEN.
+- SC4 (retry guarantee): `with conn:` atomic two-row write + registrar-first ordering; `test_retry_proof` (fail-run leaves zero rows; success-run writes both) GREEN.
+
+The verification is honest about the incomplete-pipeline state. A real Phase 4 cron run
+creates both tables and exercises the DEDUP-03/DEDUP-04 skip paths, but `NullRegistrar`
+always returns `False` — so `registered_tracking` stays empty. This is intentional (D-09):
+Phase 5 drops the real `TrackingMoreRegistrar` into the same seam with **zero changes** to
+`db.py` or the dispatch loop. The `parsed=0` count in the dispatch-complete log is an honest
+signal of a correctly-wired-but-incomplete pipeline, not a bug.
+
+One item remains at `human_needed` status: a live cron run against a real Gmail OAuth token
+and a populated `.env`, which in-process pytest cannot exercise. That live-run check confirms
+the `data/` directory creation, the file-backed `init_db` idempotency, and the NullRegistrar
+"no rows but no errors" end state on a real Pi.
+
+**Teaching point — green tests and a passing goal-verification still left a write path that
+quietly undercut the phase's own retry guarantee.** `register_and_persist` relied entirely on
+callers having run the upstream dedup guard first, but the code review's independent read of
+the implementation found that the two paths writing the same table disagreed on idempotency —
+a latent `IntegrityError` waiting for any future caller or crash-window re-entry. The
+injectable seam (`NullRegistrar`) is the other lesson: it let Phase 4 *prove* its core
+guarantee end-to-end in a fully-automated test suite before the real TrackingMore client
+existed — an honest "incomplete but verified" state beats a half-wired loop every time.
+
+---
+
 ## Where we are now
 
 - ✅ **Phase 1 — Scaffold:** complete and verified.
 - ✅ **Phase 2 — Gmail:** complete and verified (9/9 automated, threats 6/6 closed).
 - ✅ **Phase 3 — Parser Layer:** complete and verified (9/9 must-haves, threats 11/11 closed)
   — with a code-review catch (CR-02) that repaired the drop-in contract before it shipped.
-- ⏭️ **Next: Phase 4 — Deduplication.** Start with `/gsd-discuss-phase 4`. The parser now
-  emits a `TrackingInfo` per shipped email; Phase 4 makes sure each parcel is registered
-  exactly once, using `message_id` as the dedup key.
+- ✅ **Phase 4 — Deduplication:** complete and verified (4/4 must-haves; code-review finding
+  WR-01 closed via quick task `260601-pa7`; one live-run UAT item pending human verification).
+- ⏭️ **Next: Phase 5.1 — Status Monitoring & Notifications.** Start with
+  `/gsd-discuss-phase 5.1`. Phase 4 left a `NullRegistrar` seam and two tables ready;
+  Phase 5.1 drops in the real `TrackingMoreRegistrar`, polls for status changes, and pushes
+  phone notifications.
 
-Overall milestone progress: **3 of 8 phases (37.5%)**.
+Overall milestone progress: **4 of 8 phases (50%)**.
 
 ---
 
