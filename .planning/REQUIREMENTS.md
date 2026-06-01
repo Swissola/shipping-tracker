@@ -29,11 +29,11 @@
 
 ### Deduplication
 
-- [ ] **DEDUP-01**: SQLite database initialised with `processed_emails(message_id PRIMARY KEY, processed_at)` table
-- [ ] **DEDUP-02**: SQLite database initialised with `registered_tracking(tracking_number PRIMARY KEY, registered_at, source_email_id, last_status, last_status_at)` table (`last_status`/`last_status_at` are nullable; populated by Phase 5.1 monitoring)
-- [ ] **DEDUP-03**: Tool checks `processed_emails` first — skips the entire email if already seen
-- [ ] **DEDUP-04**: Tool checks `registered_tracking` before calling the API — skips registration if tracking number already registered
-- [ ] **DEDUP-05**: `registered_tracking` is only written on confirmed TrackingMore API success — failed calls are not recorded and will retry next run
+- [x] **DEDUP-01**: SQLite database initialised with `processed_emails(message_id PRIMARY KEY, processed_at)` table
+- [x] **DEDUP-02**: SQLite database initialised with `registered_tracking(tracking_number PRIMARY KEY, registered_at, source_email_id, last_status, last_status_at)` table (`last_status`/`last_status_at` are nullable; populated by Phase 5.1 monitoring)
+- [x] **DEDUP-03**: Tool checks `processed_emails` first — skips the entire email if already seen
+- [x] **DEDUP-04**: Tool checks `registered_tracking` before calling the API — skips registration if tracking number already registered
+- [x] **DEDUP-05**: `registered_tracking` is only written on confirmed TrackingMore API success — failed calls are not recorded and will retry next run
 
 ### Tracking Provider Integration (TrackingMore)
 
@@ -108,11 +108,11 @@ Updated during roadmap creation and the TrackingMore provider replan (2026-05-31
 | PARSE-01 | Phase 3 | Complete |
 | PARSE-02 | Phase 3 | Complete |
 | PARSE-03 | Phase 3 | Complete |
-| DEDUP-01 | Phase 4 | Pending |
-| DEDUP-02 | Phase 4 | Pending |
-| DEDUP-03 | Phase 4 | Pending |
-| DEDUP-04 | Phase 4 | Pending |
-| DEDUP-05 | Phase 4 | Pending |
+| DEDUP-01 | Phase 4 | Complete |
+| DEDUP-02 | Phase 4 | Complete |
+| DEDUP-03 | Phase 4 | Complete |
+| DEDUP-04 | Phase 4 | Complete |
+| DEDUP-05 | Phase 4 | Complete |
 | TRACK-01 | Phase 5 | Pending |
 | TRACK-02 | Phase 5 | Pending |
 | TRACK-03 | Phase 5 | Pending |

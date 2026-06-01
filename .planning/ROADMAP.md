@@ -164,7 +164,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 1. Scaffold | 2/2 | Complete   | 2026-05-31 |
 | 2. Gmail | 2/2 | Complete   | 2026-05-31 |
 | 3. Parser Layer | 3/3 | Complete    | 2026-06-01 |
-| 4. Deduplication | 3/3 | Complete   | 2026-06-01 |
+| 4. Deduplication | 3/3 | Complete    | 2026-06-01 |
 | 5. Pipeline | 0/TBD | Not started | - |
 | 5.1 Status Monitoring & Notifications | 0/TBD | Not started | - |
 | 6. Production | 0/TBD | Not started | - |
