@@ -22,6 +22,13 @@ class BaseParser(ABC):
     to the parser registry in main.py with no core changes required.
     """
 
+    #: Sender domains this parser claims (CR-02 / D-01). Subclasses override
+    #: this with their domain tuple; ``main._get_all_sender_domains()``
+    #: aggregates the values across every registered parser to build the
+    #: Gmail ``from:()`` query, so adding a parser self-contained in one file
+    #: automatically extends the fetch scope.
+    sender_domains: tuple[str, ...] = ()
+
     @abstractmethod
     def can_parse(self, email_body: str, sender: str) -> bool:
         """Return True if this parser handles the given email.

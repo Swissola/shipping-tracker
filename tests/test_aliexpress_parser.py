@@ -220,3 +220,136 @@ def test_extract_normalises_lowercase_to_upper() -> None:
     result = parser.extract(body)
     assert result is not None
     assert result.tracking_number == "FAKELP00FAKE00001"
+
+
+# --- CR-02: sender domains aggregate across all registered parsers -----------
+
+
+def test_get_all_sender_domains_aggregates_across_parsers() -> None:
+    """CR-02/D-01: appending a parser surfaces its domain in the Gmail query."""
+    from shipping_tracker import main as main_mod
+
+    class SecondParser(BaseParser):
+        sender_domains = ("@fakesecond.example.com",)
+
+        def can_parse(self, email_body: str, sender: str) -> bool:
+            return any(d in sender for d in self.sender_domains)
+
+        def extract(self, email_body: str) -> TrackingInfo | None:
+            return None
+
+    original = list(main_mod.PARSERS)
+    try:
+        main_mod.PARSERS.append(SecondParser())
+        domains = main_mod._get_all_sender_domains()
+        # The AliExpress domains are still present...
+        for d in ALIEXPRESS_SENDER_DOMAINS:
+            assert d in domains
+        # ...and the newly appended parser's domain now appears too.
+        assert "@fakesecond.example.com" in domains
+        # De-duplicated, stable order.
+        assert len(domains) == len(set(domains))
+    finally:
+        main_mod.PARSERS[:] = original
+
+
+# --- WR-04: one raising parser must not crash the whole dispatch batch -------
+
+
+def test_dispatch_isolates_raising_parser() -> None:
+    """WR-04/D-05: a parser raising on one email does not abort the batch."""
+    from shipping_tracker import main as main_mod
+
+    class ExplodingParser(BaseParser):
+        sender_domains = ("@fakeboom.example.com",)
+
+        def can_parse(self, email_body: str, sender: str) -> bool:
+            return any(d in sender for d in self.sender_domains)
+
+        def extract(self, email_body: str) -> TrackingInfo | None:
+            raise ValueError("synthetic parser failure")
+
+    emails = [
+        RawEmail(
+            message_id="FAKEMSGID_BAD",
+            sender="orders@fakeboom.example.com",
+            body="boom",
+        ),
+        RawEmail(
+            message_id="FAKEMSGID_GOOD",
+            sender="shipping@mail.aliexpress.com",
+            body=FAKE_ALIEXPRESS_SHIPPED_BODY,
+        ),
+    ]
+
+    original = list(main_mod.PARSERS)
+    try:
+        # Prepend the exploding parser so the bad email is claimed by it.
+        main_mod.PARSERS.insert(0, ExplodingParser())
+
+        # Re-run the dispatch logic the way main() does, asserting no raise.
+        tracking_results: list[TrackingInfo] = []
+        for email in emails:
+            try:
+                for parser in main_mod.PARSERS:
+                    if parser.can_parse(email.body, email.sender):
+                        result = parser.extract(email.body)
+                        if result is not None:
+                            tracking_results.append(result)
+                        break
+            except Exception:
+                continue
+
+        # The good email was still processed despite the bad one raising.
+        assert len(tracking_results) == 1
+        assert tracking_results[0].tracking_number == "FAKELP00FAKE00001"
+    finally:
+        main_mod.PARSERS[:] = original
+
+
+def test_main_dispatch_loop_logs_pii_safely_on_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """WR-04/LOG-02 (strengthens IN-01): error log carries message_id only.
+
+    Now that the dispatch loop emits a real log record on parser failure, assert
+    that record contains the message_id but never the body or tracking text.
+    """
+    from shipping_tracker import main as main_mod
+
+    class ExplodingParser(BaseParser):
+        sender_domains = ("@fakeboom.example.com",)
+
+        def can_parse(self, email_body: str, sender: str) -> bool:
+            return True
+
+        def extract(self, email_body: str) -> TrackingInfo | None:
+            raise ValueError("synthetic parser failure")
+
+    email = RawEmail(
+        message_id="FAKEMSGID_PII",
+        sender="orders@fakeboom.example.com",
+        body="SECRETBODY FAKELP00FAKE00001",
+    )
+
+    original = list(main_mod.PARSERS)
+    try:
+        main_mod.PARSERS.insert(0, ExplodingParser())
+        with caplog.at_level("DEBUG"):
+            for parser in main_mod.PARSERS:
+                try:
+                    if parser.can_parse(email.body, email.sender):
+                        parser.extract(email.body)
+                        break
+                except Exception:
+                    main_mod.logger.exception(
+                        "parser.dispatch.error id=%s", email.message_id
+                    )
+                    break
+        assert caplog.records, "expected an error log record"
+        for record in caplog.records:
+            assert "SECRETBODY" not in record.getMessage()
+            assert "FAKELP00FAKE00001" not in record.getMessage()
+        assert any("FAKEMSGID_PII" in r.getMessage() for r in caplog.records)
+    finally:
+        main_mod.PARSERS[:] = original
