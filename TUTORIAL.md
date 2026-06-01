@@ -220,15 +220,101 @@ See [`02-VERIFICATION.md`](.planning/phases/02-gmail/02-VERIFICATION.md).
 
 ---
 
+## Step 4 — Phase 3: Parser Layer
+
+**Goal:** turn an AliExpress shipping email into a `TrackingInfo` (tracking number +
+best-effort carrier) through a *pluggable* `BaseParser`, so adding a future seller is a
+drop-in — one new file, no edits to the core pipeline.
+
+### 4a. Discuss & research
+
+`/gsd-discuss-phase 3` locked five decisions ([`03-CONTEXT.md`](.planning/phases/03-parser-layer/03-CONTEXT.md),
+2026-06-01): a parser matches on **sender domain** and owns that domain list itself (D-01);
+extraction is **label-anchored with a constrained shape-pattern fallback** (D-02); first
+match wins (D-03); `carrier` becomes `str | None` — a direct consequence of the Step 2
+TrackingMore replan, since the provider auto-detects the courier (D-04); and a "matched but
+no tracking number" email (the routine pre-shipment *"order confirmed"*) is an **expected,
+non-fatal** skip, not an error (D-05).
+
+Research (`8d4ddf1`) confirmed the real AliExpress sender domains and label strings without
+ever committing real data, and made two recommendations the planner adopted: `extract()`
+should **return `None`** rather than raise on a no-tracking email (exceptions are the wrong
+tool for an expected case), and the parser registry should just be a `PARSERS` list in
+`main.py` for v1.
+
+### 4b. Plan & execute — three waves
+
+Planning produced 3 plans across 3 strictly-sequential waves (the plan-checker passed all
+dimensions before a line of code was written):
+
+- **Wave 1 — `03-01` (RED scaffold):** the `carrier: str | None` edit (D-04) and the new
+  `extract() -> TrackingInfo | None` contract (D-05) in `base.py`, plus synthetic
+  `FAKE`-prefixed fixtures and a deliberately-failing test suite. Tests exist *before* the
+  implementation. Commits `0b45f07`, `5f9212c`, `a04571a`.
+- **Wave 2 — `03-02` (the parser):** `AliExpressParser` with a module-level sender-domain
+  constant, a label regex, and a **ReDoS-safe** shape fallback (every alternative requires a
+  letter component, so a purely-numeric order reference can't be mis-read as a tracking
+  number). Unit tests go green. Commits `6eaa8d0`, `66037f5`.
+- **Wave 3 — `03-03` (dispatch):** the `PARSERS` registry and the first-match-wins loop wired
+  into `main()`, completing the `RawEmail → TrackingInfo` path. Integration tests go green.
+  Commits `ea9492f`, `5f16bec`.
+
+### 4c. The course-correction: the code review caught what the tests missed ⚠️
+
+This is the instructive moment of Phase 3 (the Step-2 equivalent of the 17track→TrackingMore
+switch). After execution, **every one of the 32 tests was green** and the phase looked done.
+The automated `/gsd-code-review` gate (`e41ad67`) still found two real bugs:
+
+- **CR-01 — silent truncation.** The tracking-number capture `([A-Z0-9]{8,35})` had no
+  trailing boundary, so a token longer than 35 characters was captured as its *first 35
+  chars* — a wrong number, registered as if correct. A direct hit on the tool's core value.
+- **CR-02 — the drop-in contract was quietly broken.** `_get_all_sender_domains()` returned
+  the AliExpress constant directly instead of aggregating across `PARSERS`. So a second
+  parser would extend `can_parse` matching but **not** the Gmail fetch query — its emails
+  would never be fetched. That contradicts Success Criterion 3 ("register by appending to the
+  parser list with *no other changes*"). The `test_registry_drop_in` test missed it because
+  it only exercised `can_parse`, never the query-building path.
+
+The fixer repaired both: CR-01 gained a `(?![A-Z0-9])` boundary (an over-length token now
+fails cleanly rather than truncating), and CR-02 added a `sender_domains` field to the
+`BaseParser` ABC with `main()` aggregating over `PARSERS` — restoring the true single-file
+drop-in. Commits `3ecad06`, `e839166`.
+
+### 4d. Verify, secure & a follow-up
+
+Goal-backward verification ([`03-VERIFICATION.md`](.planning/phases/03-parser-layer/03-VERIFICATION.md),
+`c5eaf4d`) confirmed **9/9 must-haves** and all three success criteria *true against the code*
+— including the now-repaired drop-in, re-tested with a real second parser. `/gsd-secure-phase`
+closed **11/11 threats** (`31a6c3d`), and specifically re-checked that the review fixes
+preserved their mitigations (CR-02 actually *strengthened* the sender-list single-source-of-truth).
+
+One honest follow-up: a human read of the fixes surfaced a *forward-looking* PII risk — the
+dispatch error handler used `logger.exception`, which renders the traceback and the
+exception's own message; a careless third-party parser raising `ValueError(f"bad body: {body}")`
+would leak that into the JSON log. Hardened to log the `message_id` and exception **type**
+only, with a contract note on `BaseParser.extract` (`1c5b347`).
+
+**Teaching point — green tests are not a proof of correctness; they prove what you thought to
+test.** All 32 tests passed *and* the phase passed goal-verification, yet the independent
+code-review reader still found a bug that broke a success criterion — because the test
+asserted the mechanism it expected (`can_parse`) rather than the contract it cared about (a
+new parser needs *zero* other edits). Both bugs the review caught — truncation and the
+drop-in gap — produced fully green suites. That's exactly why GSD runs code review as a
+separate gate after execution: treat its findings as first-class even when everything passes.
+
+---
+
 ## Where we are now
 
 - ✅ **Phase 1 — Scaffold:** complete and verified.
 - ✅ **Phase 2 — Gmail:** complete and verified (9/9 automated, threats 6/6 closed).
-- ⏭️ **Next: Phase 3 — Parser Layer.** Start with `/gsd-discuss-phase 3`. Thanks to the
-  Step 2 replan, the parser's job is now narrower than the brief imagined: extract the
-  tracking number; the carrier is optional.
+- ✅ **Phase 3 — Parser Layer:** complete and verified (9/9 must-haves, threats 11/11 closed)
+  — with a code-review catch (CR-02) that repaired the drop-in contract before it shipped.
+- ⏭️ **Next: Phase 4 — Deduplication.** Start with `/gsd-discuss-phase 4`. The parser now
+  emits a `TrackingInfo` per shipped email; Phase 4 makes sure each parcel is registered
+  exactly once, using `message_id` as the dedup key.
 
-Overall milestone progress: **2 of 8 phases (25%)**.
+Overall milestone progress: **3 of 8 phases (37.5%)**.
 
 ---
 
