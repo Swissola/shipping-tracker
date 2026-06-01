@@ -77,6 +77,11 @@ def register_and_persist(
     Re-raises any exception from registrar so main.py WR-04 handler logs once
     (LOG-02 single log site; D-08).
 
+    Idempotent / safe to retry (WR-01): a repeat call for an already-present
+    message_id or tracking_number is a silent no-op (INSERT OR IGNORE) and still
+    returns True, rather than raising IntegrityError.  Consistent with the
+    INSERT OR IGNORE used in main.py's DEDUP-04 mark-processed branch.
+
     PRIVACY (LOG-02): this function logs only message_id and never tracking_number.
     """
     try:
@@ -88,11 +93,11 @@ def register_and_persist(
     now = datetime.datetime.now(datetime.UTC).isoformat()
     with conn:  # commits on block exit; rolls back on any exception (D-01)
         conn.execute(
-            "INSERT INTO processed_emails VALUES (?, ?)",
+            "INSERT OR IGNORE INTO processed_emails VALUES (?, ?)",
             (message_id, now),
         )
         conn.execute(
-            "INSERT INTO registered_tracking VALUES (?, ?, ?, NULL, NULL)",
+            "INSERT OR IGNORE INTO registered_tracking VALUES (?, ?, ?, NULL, NULL)",
             (tracking_number, now, message_id),
         )
     return True

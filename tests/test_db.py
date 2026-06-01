@@ -320,6 +320,47 @@ def test_retry_proof() -> None:
 
 
 # ---------------------------------------------------------------------------
+# DEDUP-05 (idempotency): register_and_persist is a silent no-op on retry
+# ---------------------------------------------------------------------------
+
+
+def test_register_and_persist_idempotent(db_conn: sqlite3.Connection) -> None:
+    """DEDUP-05: a second call for already-present rows is a silent no-op (WR-01).
+
+    Calling register_and_persist twice with the same message_id + tracking_number
+    must not raise IntegrityError; it must return True and leave exactly one row
+    in each table (INSERT OR IGNORE semantics).
+    """
+    # First call: both rows inserted, returns True
+    result_1 = register_and_persist(
+        db_conn, FAKE_MESSAGE_ID_1, FAKE_TRACKING_NUMBER_1, success_registrar
+    )
+    assert result_1 is True
+    assert is_email_processed(db_conn, FAKE_MESSAGE_ID_1) is True
+    assert is_tracking_registered(db_conn, FAKE_TRACKING_NUMBER_1) is True
+
+    # Second call: identical args — must be a silent no-op (no IntegrityError)
+    result_2 = register_and_persist(
+        db_conn, FAKE_MESSAGE_ID_1, FAKE_TRACKING_NUMBER_1, success_registrar
+    )
+    assert result_2 is True
+
+    # Each table must still hold exactly one row for these values
+    count_email = db_conn.execute(
+        "SELECT COUNT(*) FROM processed_emails WHERE message_id = ?",
+        (FAKE_MESSAGE_ID_1,),
+    ).fetchone()[0]
+    count_tracking = db_conn.execute(
+        "SELECT COUNT(*) FROM registered_tracking WHERE tracking_number = ?",
+        (FAKE_TRACKING_NUMBER_1,),
+    ).fetchone()[0]
+    assert count_email == 1, "processed_emails must have exactly one row (no duplicate)"
+    assert count_tracking == 1, (
+        "registered_tracking must have exactly one row (no duplicate)"
+    )
+
+
+# ---------------------------------------------------------------------------
 # D-09: NullRegistrar
 # ---------------------------------------------------------------------------
 
