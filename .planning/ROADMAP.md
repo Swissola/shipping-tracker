@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Scaffold** - Project toolchain and package structure ready for development *(Planned — 2 plans)*
 - [x] **Phase 2: Gmail** - Tool authenticates to Gmail and retrieves unread shipping emails
  (completed 2026-05-31)
-- [ ] **Phase 3: Parser Layer** - AliExpress emails parsed via pluggable BaseParser architecture
+- [x] **Phase 3: Parser Layer** - AliExpress emails parsed via pluggable BaseParser architecture (completed 2026-06-01)
 - [ ] **Phase 4: Deduplication** - SQLite state layer enforces idempotency across all runs
 - [ ] **Phase 5: Pipeline** - TrackingMore registration wired end-to-end; tool runs completely
 - [ ] **Phase 5.1: Status Monitoring & Notifications** *(INSERTED)* - poll for status changes, push phone notifications
@@ -88,7 +88,7 @@ Plans:
 - [x] 03-02-PLAN.md — AliExpressParser: sender-domain can_parse (D-01) + label-anchored/shape-fallback extract (D-02), carrier None (D-04), pre-shipment returns None (D-05), PII-safe (PARSE-02)
 
 **Wave 3** *(blocked on Wave 2)*
-- [ ] 03-03-PLAN.md — Dispatch wiring: PARSERS registry + first-match-wins loop, parser-derived Gmail sender list (D-01), no-match/pre-shipment logged and skipped without raising (PARSE-03)
+- [x] 03-03-PLAN.md — Dispatch wiring: PARSERS registry + first-match-wins loop, parser-derived Gmail sender list (D-01), no-match/pre-shipment logged and skipped without raising (PARSE-03)
 
 ### Phase 4: Deduplication
 **Goal**: SQLite provides the stateful core of the idempotency guarantee — processed emails and registered tracking numbers are never acted on twice, and failed API calls are retried next run automatically.
@@ -152,7 +152,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1 → 6
 |-------|----------------|--------|-----------|
 | 1. Scaffold | 2/2 | Complete   | 2026-05-31 |
 | 2. Gmail | 2/2 | Complete   | 2026-05-31 |
-| 3. Parser Layer | 2/3 | In Progress|  |
+| 3. Parser Layer | 3/3 | Complete   | 2026-06-01 |
 | 4. Deduplication | 0/TBD | Not started | - |
 | 5. Pipeline | 0/TBD | Not started | - |
 | 5.1 Status Monitoring & Notifications | 0/TBD | Not started | - |

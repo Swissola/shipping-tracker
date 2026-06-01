@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-01T10:25:14.961Z"
+status: verifying
+last_updated: "2026-06-01T10:29:47.378Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
-  percent: 25
+  completed_plans: 7
+  percent: 38
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: .planning/PROJECT.md (updated 2026-05-31)
 
 Phase: 03 (parser-layer) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-01
 
-Progress: [█████████░] 86%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [█████████░] 86%
 | Phase 02-gmail P02 | 35 | 2 tasks | 5 files |
 | Phase 03-parser-layer P01 | 8 | 2 tasks | 4 files |
 | Phase 03-parser-layer P02 | 12 | 1 tasks | 3 files |
+| Phase 03-parser-layer P03 | 2 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ Recent decisions affecting current work:
 - [Phase ?]: carrier field made optional in TrackingInfo dataclass
 - [Phase ?]: extract() contract returns None for pre-shipment emails rather than raising ValueError
 - [Phase ?]: AliExpressParser._SHAPE_RE extended with mixed-alphanumeric alternative; mandatory-letter constraint blocks numeric order refs (T-03-05)
+- [Phase ?]: D-01: _get_all_sender_domains() replaces os.getenv GMAIL_SENDER_LIST; parser constants own the Gmail query sender list
+- [Phase ?]: D-03: PARSERS module-level registry with first-match-wins dispatch loop in main(); dispatch loop collects list[TrackingInfo] for Phase 4
 
 ### Pending Todos
 
@@ -97,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-01T10:25:14.955Z
-Stopped at: Phase 03 Plan 02 complete — AliExpressParser green; 7 PARSE-02 unit tests pass; dispatch/registry RED pending Plan 03
+Last session: 2026-06-01T10:29:47.372Z
+Stopped at: Phase 03 Plan 03 complete — PARSERS registry + dispatch loop green; 32/32 tests pass; Phase 3 complete, ready for /gsd-verify-work
 Resume file: None
