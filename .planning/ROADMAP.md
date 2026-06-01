@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Scaffold** - Project toolchain and package structure ready for development *(Planned — 2 plans)*
 - [x] **Phase 2: Gmail** - Tool authenticates to Gmail and retrieves unread shipping emails
  (completed 2026-05-31)
-- [x] **Phase 3: Parser Layer** - AliExpress emails parsed via pluggable BaseParser architecture (completed 2026-06-01)
+- [x] **Phase 3: Parser Layer** - AliExpress emails parsed via pluggable BaseParser architecture (completed 2026-06-01)
 - [ ] **Phase 4: Deduplication** - SQLite state layer enforces idempotency across all runs
 - [ ] **Phase 5: Pipeline** - TrackingMore registration wired end-to-end; tool runs completely
 - [ ] **Phase 5.1: Status Monitoring & Notifications** *(INSERTED)* - poll for status changes, push phone notifications
@@ -100,7 +100,18 @@ Plans:
   2. An email whose `message_id` is already in `processed_emails` is skipped entirely without re-parsing or re-querying the API
   3. A tracking number already in `registered_tracking` is skipped without calling the TrackingMore API
   4. A simulated API failure leaves `registered_tracking` unwritten, so the same tracking number is attempted again on the next run
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+
+**Wave 1** *(Nyquist test scaffold — authored before source)*
+- [ ] 04-01-PLAN.md — Wave 0 test scaffold: FAKE fixture data, in-memory db_conn fixture, and the 15 DEDUP-01..05/D-03/D-09 test functions (incl. the retry proof) failing RED until source lands
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 04-02-PLAN.md — State layer source: registrar.py (Registrar Protocol + NullRegistrar seam, D-08/D-09) and db.py (init_db schema/PRAGMAs, dedup predicates, atomic register_and_persist — DEDUP-01..05, D-01)
+
+**Wave 3** *(blocked on Wave 2)*
+- [ ] 04-03-PLAN.md — Dispatch wiring (MVP slice): connection lifecycle in main() (D-05), DEDUP-03/04/05 checks + NullRegistrar seam + D-03 INSERT OR IGNORE branch, DATABASE_PATH in .env.example (D-07)
 
 ### Phase 5: Pipeline
 **Goal**: The TrackingMore API is integrated and every layer is wired together — Gmail fetch → parse → deduplicate → register — so the tool can complete a real end-to-end run.
@@ -153,7 +164,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 1. Scaffold | 2/2 | Complete   | 2026-05-31 |
 | 2. Gmail | 2/2 | Complete   | 2026-05-31 |
 | 3. Parser Layer | 3/3 | Complete    | 2026-06-01 |
-| 4. Deduplication | 0/TBD | Not started | - |
+| 4. Deduplication | 0/3 | Planned | - |
 | 5. Pipeline | 0/TBD | Not started | - |
 | 5.1 Status Monitoring & Notifications | 0/TBD | Not started | - |
 | 6. Production | 0/TBD | Not started | - |
