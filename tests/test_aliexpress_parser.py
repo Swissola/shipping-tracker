@@ -5,12 +5,12 @@ All test data is synthetic — no real tracking numbers or personal data.
 """
 
 import pytest
-from shipping_tracker.parsers.aliexpress import (  # type: ignore[import-not-found]
+
+from shipping_tracker.gmail.client import RawEmail
+from shipping_tracker.parsers.aliexpress import (
     ALIEXPRESS_SENDER_DOMAINS,
     AliExpressParser,
 )
-
-from shipping_tracker.gmail.client import RawEmail
 from shipping_tracker.parsers.base import BaseParser, TrackingInfo
 from tests.fixtures.fake_aliexpress_email import (
     FAKE_ALIEXPRESS_NOLABEL_BODY,
