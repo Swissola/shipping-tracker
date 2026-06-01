@@ -85,7 +85,7 @@ Plans:
 - [x] 03-01-PLAN.md — Contract + Wave 0 scaffold: D-04/D-05 edit to base.py (TrackingInfo optional carrier, extract -> TrackingInfo | None), synthetic FAKE AliExpress fixtures, 13 failing parser tests + smoke carrier-default assertion (PARSE-01)
 
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 03-02-PLAN.md — AliExpressParser: sender-domain can_parse (D-01) + label-anchored/shape-fallback extract (D-02), carrier None (D-04), pre-shipment returns None (D-05), PII-safe (PARSE-02)
+- [x] 03-02-PLAN.md — AliExpressParser: sender-domain can_parse (D-01) + label-anchored/shape-fallback extract (D-02), carrier None (D-04), pre-shipment returns None (D-05), PII-safe (PARSE-02)
 
 **Wave 3** *(blocked on Wave 2)*
 - [ ] 03-03-PLAN.md — Dispatch wiring: PARSERS registry + first-match-wins loop, parser-derived Gmail sender list (D-01), no-match/pre-shipment logged and skipped without raising (PARSE-03)
@@ -152,7 +152,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1 → 6
 |-------|----------------|--------|-----------|
 | 1. Scaffold | 2/2 | Complete   | 2026-05-31 |
 | 2. Gmail | 2/2 | Complete   | 2026-05-31 |
-| 3. Parser Layer | 1/3 | In Progress|  |
+| 3. Parser Layer | 2/3 | In Progress|  |
 | 4. Deduplication | 0/TBD | Not started | - |
 | 5. Pipeline | 0/TBD | Not started | - |
 | 5.1 Status Monitoring & Notifications | 0/TBD | Not started | - |

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T10:19:36.971Z"
+last_updated: "2026-06-01T10:25:14.961Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 25
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-31)
 ## Current Position
 
 Phase: 03 (parser-layer) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-01
 
-Progress: [███████░░░] 71%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [███████░░░] 71%
 | Phase 02-gmail P01 | 25 | 3 tasks | 10 files |
 | Phase 02-gmail P02 | 35 | 2 tasks | 5 files |
 | Phase 03-parser-layer P01 | 8 | 2 tasks | 4 files |
+| Phase 03-parser-layer P02 | 12 | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Prevents logging.basicConfig() racing env reads; ensures .env values are available to log path config
 - [Phase ?]: carrier field made optional in TrackingInfo dataclass
 - [Phase ?]: extract() contract returns None for pre-shipment emails rather than raising ValueError
+- [Phase ?]: AliExpressParser._SHAPE_RE extended with mixed-alphanumeric alternative; mandatory-letter constraint blocks numeric order refs (T-03-05)
 
 ### Pending Todos
 
@@ -95,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-01T10:19:36.964Z
-Stopped at: Phase 3 context gathered — 5 decisions locked (parser matching, extraction, multi-#, carrier optional, no-tracking skip). Next: /gsd-plan-phase 3
+Last session: 2026-06-01T10:25:14.955Z
+Stopped at: Phase 03 Plan 02 complete — AliExpressParser green; 7 PARSE-02 unit tests pass; dispatch/registry RED pending Plan 03
 Resume file: None

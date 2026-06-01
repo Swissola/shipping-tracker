@@ -24,7 +24,7 @@
 ### Parser Layer
 
 - [x] **PARSE-01**: `BaseParser` abstract base class defined with `can_parse(email) -> bool` and `extract(email) -> TrackingInfo` interface
-- [ ] **PARSE-02**: `AliExpressParser` implements `BaseParser` and correctly extracts the tracking number from AliExpress shipping notification emails; carrier is best-effort metadata only (TrackingMore auto-detects the courier, so a missing carrier never blocks registration)
+- [x] **PARSE-02**: `AliExpressParser` implements `BaseParser` and correctly extracts the tracking number from AliExpress shipping notification emails; carrier is best-effort metadata only (TrackingMore auto-detects the courier, so a missing carrier never blocks registration)
 - [ ] **PARSE-03**: Parsers are registered in a list; first match wins; unknown emails are logged and skipped without error
 
 ### Deduplication
@@ -106,7 +106,7 @@ Updated during roadmap creation and the TrackingMore provider replan (2026-05-31
 | GMAIL-02 | Phase 2 | Complete |
 | GMAIL-03 | Phase 2 | Complete |
 | PARSE-01 | Phase 3 | Complete |
-| PARSE-02 | Phase 3 | Pending |
+| PARSE-02 | Phase 3 | Complete |
 | PARSE-03 | Phase 3 | Pending |
 | DEDUP-01 | Phase 4 | Pending |
 | DEDUP-02 | Phase 4 | Pending |
