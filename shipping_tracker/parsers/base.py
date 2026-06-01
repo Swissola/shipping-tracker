@@ -1,5 +1,7 @@
 """BaseParser abstract interface — all email parsers inherit from this class."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -9,7 +11,7 @@ class TrackingInfo:
     """Structured tracking data extracted from a shipping email."""
 
     tracking_number: str
-    carrier: str
+    carrier: str | None = None
 
 
 class BaseParser(ABC):
@@ -34,16 +36,15 @@ class BaseParser(ABC):
         ...
 
     @abstractmethod
-    def extract(self, email_body: str) -> TrackingInfo:
+    def extract(self, email_body: str) -> TrackingInfo | None:
         """Extract tracking info from a matching email.
 
         Args:
             email_body: Plain-text body of the email.
 
         Returns:
-            TrackingInfo with tracking_number and carrier populated.
-
-        Raises:
-            ValueError: If the email matches but extraction fails.
+            TrackingInfo with tracking_number populated, or None if the email
+            matches but contains no tracking number (e.g., pre-shipment order
+            confirmation emails — expected routine case per D-05).
         """
         ...

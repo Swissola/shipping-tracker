@@ -37,6 +37,12 @@ def test_tracking_info_dataclass() -> None:
     assert ti.carrier == "FAKECARRIER"
 
 
+def test_tracking_info_carrier_optional() -> None:
+    """TrackingInfo.carrier defaults to None after D-04."""
+    ti = TrackingInfo(tracking_number="FAKENUMBER")
+    assert ti.carrier is None
+
+
 def test_entry_point_no_stdout() -> None:
     """python -m shipping_tracker produces no stdout (cron silence — D-07).
 
