@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-31)
 Phase: 4
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-06-01
+Last activity: 2026-06-01 - Completed quick task 260601-kp7: CLAUDE.md routing guardrail + WR-04 record
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -92,6 +92,12 @@ None yet.
 ### Blockers/Concerns
 
 None yet.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260601-kp7 | CLAUDE.md routing guardrail + record WR-04 PII-logging hardening (1c5b347) | 2026-06-01 | 84f3a5f | [260601-kp7-add-claude-md-guardrail-routing-conversa](./quick/260601-kp7-add-claude-md-guardrail-routing-conversa/) |
 
 ## Deferred Items
 

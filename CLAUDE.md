@@ -62,8 +62,33 @@ Use these entry points:
 - `/gsd-quick` for small fixes, doc updates, and ad-hoc tasks
 - `/gsd-debug` for investigation and bug fixing
 - `/gsd-execute-phase` for planned phase work
+- `/gsd-plan-phase N --gaps` for fixes to an already-verified phase (verification or code-review gaps)
+- `/gsd-capture` to park a "noticed it, not now" item in the tracked backlog
 
 Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
+
+### Routing conversational requests
+
+Conversation — questions, analysis, triage, recommendations, weighing options — needs no GSD
+command; engage freely. The guardrail applies the moment a conversation turns into a request to
+**change files**:
+
+- **Before** making that change, classify it and surface the route rather than silently editing:
+  - **Code, behaviour, schema, runtime config, dependencies** → do NOT apply as a direct edit.
+    Offer the matching command first (`/gsd-quick "<task>"` for standalone work, `/gsd-debug` for
+    a bug, `/gsd-plan-phase N --gaps` for a verified-phase gap). Apply inline only after the user,
+    having seen the recommendation, chooses to proceed without the wrapper.
+  - **Docs, planning files, comments, tracking tidies** → `/gsd-quick` is preferred; a direct edit
+    is acceptable, but say so when you make one ("applying this as a direct doc edit — not tracked
+    as a quick task").
+  - **Trivial one-liner the user is explicitly driving** (a rename or typo they named) → proceed,
+    keep the commit atomic.
+- "The user explicitly asked" means a **deliberate opt-out after the GSD route was offered** — not
+  merely answering "yes" to a fix request. When unsure, name the cost out loud (the change skips the
+  PLAN/SUMMARY/verify trail and the `/gsd-undo` manifest) and let the user decide.
+- Do not let a finished command's tail ("we're done — now also fix X, and Y") become a string of
+  untracked edits. Treat each new change request as its own unit of work and route it through its
+  own command.
 <!-- GSD:workflow-end -->
 
 
