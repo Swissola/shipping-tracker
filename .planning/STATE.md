@@ -116,6 +116,7 @@ None yet.
 | 260602-k5r | Bound per-run registrar retries + add jitter (WR-05): per-run retry budget caps cumulative sleep, random.uniform jitter de-syncs retries; +2 regression tests. Decision: budget+jitter (CONTEXT.md) | 2026-06-02 | a4f2bd8 | [260602-k5r-wr-05-fix](./quick/260602-k5r-wr-05-fix/) |
 | 260602-m6t | Narrow registrar _handle resp.json() except to (json.JSONDecodeError, ValueError) (WR-06): non-decode errors propagate instead of being masked as empty body; +2 regression tests | 2026-06-02 | 273978c | [260602-m6t-wr-06-fix](./quick/260602-m6t-wr-06-fix/) |
 | 260602-n7v | Cover 4101/4190/HTTP-402 quota paths in registrar _handle (IN-01): +5 parametrized cases, mutation-checked teeth; test-only | 2026-06-02 | 6ab8bf3 | [260602-n7v-in-01-fix](./quick/260602-n7v-in-01-fix/) |
+| 260602-p8x | Explicit unreachable marker in registrar __call__ (IN-02): replace dead `return False` with `raise AssertionError('unreachable')`; no behavior change | 2026-06-02 | 8fcbd3e | [260602-p8x-in-02-fix](./quick/260602-p8x-in-02-fix/) |
 
 ## Deferred Items
 

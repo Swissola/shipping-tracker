@@ -44,7 +44,7 @@ raise AssertionError("unreachable")
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Replace unreachable return False with raise AssertionError | _pending_ | shipping_tracker/registrar.py |
+| 1 | Replace unreachable return False with raise AssertionError | 8fcbd3e | shipping_tracker/registrar.py |
 
 ## Test Results
 
