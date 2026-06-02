@@ -73,15 +73,25 @@ def register_and_persist(
 ) -> bool:
     """Call registrar; on success write both rows atomically; on failure write neither.
 
+    This function ALWAYS calls ``registrar(tracking_number, carrier)`` first — a
+    billable TrackingMore API call — including for a tracking_number that is already
+    registered. It is NOT idempotent and NOT safe to retry at the cost/API layer:
+    each call consumes free-tier quota regardless of prior state.
+
+    Callers MUST enforce deduplication via is_tracking_registered() (and/or
+    is_email_processed()) BEFORE invoking this function, so the billable registrar
+    call is never made for a known number. The real pipeline does exactly this at
+    main.py:136 (DEDUP-04); register_and_persist is a lower-level primitive that
+    deliberately holds no dedup policy of its own.
+
+    The only idempotency that holds is at the DB-write layer: both writes use
+    INSERT OR IGNORE, so a duplicate message_id or tracking_number does not raise
+    IntegrityError — but by then the registrar call has already happened.
+
     Returns True if rows were persisted (registration succeeded).
-    Returns False if registrar returned False — neither row is written.
+    Returns False if registrar returned False — neither row is written (atomic; D-01).
     Re-raises any exception from registrar so main.py WR-04 handler logs once
     (LOG-02 single log site; D-08).
-
-    Idempotent / safe to retry (WR-01): a repeat call for an already-present
-    message_id or tracking_number is a silent no-op (INSERT OR IGNORE) and still
-    returns True, rather than raising IntegrityError.  Consistent with the
-    INSERT OR IGNORE used in main.py's DEDUP-04 mark-processed branch.
 
     PRIVACY (LOG-02): this function logs only message_id and never tracking_number.
 
