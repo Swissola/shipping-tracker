@@ -45,7 +45,14 @@ def configure_logging(
     )
     handler.setFormatter(formatter)
 
+    # WR-03: idempotent — remove and close any existing root handlers before
+    # adding ours. Without this, every configure_logging() call (one per main()
+    # run, and several across the test suite) would append another
+    # RotatingFileHandler, leaking file descriptors and duplicating log lines.
     root_logger = logging.getLogger()
+    for existing in list(root_logger.handlers):
+        root_logger.removeHandler(existing)
+        existing.close()
     root_logger.addHandler(handler)
     root_logger.setLevel(log_level)
     # NO StreamHandler — cron silence (D-07, LOG-03)
