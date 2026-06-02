@@ -77,7 +77,12 @@ def main() -> int:
         return 1
 
     db_path = os.getenv("DATABASE_PATH", "data/shipping-tracker.db")
-    os.makedirs(os.path.dirname(db_path) or "data", exist_ok=True)
+    # WR-02: only create a directory when db_path actually has one, so the
+    # makedirs target matches where sqlite3.connect writes. A bare filename
+    # (e.g. tracker.db) or ":memory:" must NOT fabricate a spurious data/ dir.
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     conn = sqlite3.connect(db_path)
 
     # Pitfall 4: main() owns the httpx.Client lifetime — named local so it can be
