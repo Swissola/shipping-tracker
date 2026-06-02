@@ -124,7 +124,15 @@ Plans:
   3. A duplicate / already-exists response from TrackingMore is logged and treated as success — no error is raised
   4. A rate-limit, quota, or network error from TrackingMore is logged and the run continues without crashing; the tracking number is not written to the database
   5. The courier is auto-detected by TrackingMore; the parser's carrier value is passed only as an optional `courier_code` hint and is never required for registration
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+
+**Wave 1** *(Nyquist test scaffold — authored before source)*
+- [ ] 05-01-PLAN.md — Wave 0 test scaffold: respx dev dep, conftest mock_router fixture + synthetic TrackingMore response builders, and the 15 failing TRACK-01..05/LOG-02/D-05/D-06 tests in tests/test_registrar.py (RED until source lands)
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 05-02-PLAN.md — Pipeline slice: TrackingMoreRegistrar + QuotaExceededError (injectable httpx.Client, response→outcome mapping, D-01/D-02/D-08), db.py carrier passthrough, and main() wiring (D-05 key fail-fast, NullRegistrar→TrackingMoreRegistrar swap, QuotaExceededError catch before broad except per D-06) — TRACK-01..05
 
 ### Phase 05.1: Status Monitoring and Notifications (INSERTED)
 **Goal**: The tool monitors in-flight parcels by polling TrackingMore for status changes and sends a push notification when a parcel moves — giving phone-side awareness ("out for delivery", "delivered") without any consumer app or home-screen widget, and without consuming the monthly registration quota.
@@ -165,6 +173,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 2. Gmail | 2/2 | Complete   | 2026-05-31 |
 | 3. Parser Layer | 3/3 | Complete    | 2026-06-01 |
 | 4. Deduplication | 3/3 | Complete    | 2026-06-01 |
-| 5. Pipeline | 0/TBD | Not started | - |
+| 5. Pipeline | 0/2 | Not started | - |
 | 5.1 Status Monitoring & Notifications | 0/TBD | Not started | - |
 | 6. Production | 0/TBD | Not started | - |
