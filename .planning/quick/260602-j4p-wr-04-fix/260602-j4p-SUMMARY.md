@@ -53,7 +53,7 @@ This is the **Phase 05 review** WR-04 (credentials-path leak in `main()`), which
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Log credentials basename only + WR-04 regression test | _pending_ | shipping_tracker/main.py, tests/test_main.py |
+| 1 | Log credentials basename only + WR-04 regression test | ffe6540 | shipping_tracker/main.py, tests/test_main.py |
 
 ## Test Results
 
