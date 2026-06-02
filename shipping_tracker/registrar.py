@@ -8,6 +8,7 @@ exception string would defeat that guarantee.
 
 from __future__ import annotations
 
+import json
 import logging
 import random
 import time
@@ -138,8 +139,11 @@ class TrackingMoreRegistrar:
             raise QuotaExceededError("rate-limit")  # D-06; no PII in message
         try:
             body = resp.json()
-        except Exception:
-            body = {}  # Pitfall 6 / Q-2: non-JSON body → fall through to status checks
+        except (json.JSONDecodeError, ValueError):
+            # WR-06: tolerate ONLY a non-JSON body (Pitfall 6 / Q-2) — fall through
+            # to the status checks. A non-decode error (e.g. an unexpected response
+            # object) must NOT be masked as an empty body; let it propagate.
+            body = {}
         meta_code = body.get("meta", {}).get("code")
         if meta_code in (200, 201):
             logger.info("registrar.created")  # D-07: INFO; no tracking_number

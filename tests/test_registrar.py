@@ -350,6 +350,39 @@ def test_retry_pause_includes_jitter(
 
 
 # ---------------------------------------------------------------------------
+# WR-06: _handle narrows the resp.json() except to decode errors only
+# ---------------------------------------------------------------------------
+
+
+def test_non_json_body_tolerated(mock_router: respx.MockRouter) -> None:
+    """WR-06: a non-JSON 200 body is tolerated (decode error caught) — no raise,
+    falls through to the status checks and returns False."""
+    mock_router.post(_CREATE_URL).mock(
+        return_value=httpx.Response(200, text="not json at all")
+    )
+    registrar = _make_registrar(mock_router)
+
+    assert registrar(FAKE_TRACKING_NUMBER_1, None) is False
+
+
+def test_unexpected_json_error_propagates(
+    mock_router: respx.MockRouter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WR-06: a non-decode error from resp.json() (e.g. TypeError) must NOT be
+    swallowed as an empty body — it should propagate so real bugs surface."""
+    registrar = _make_registrar(mock_router)
+    resp = httpx.Response(200, request=httpx.Request("POST", _CREATE_URL))
+
+    def _boom() -> object:
+        raise TypeError("not a decode error")
+
+    monkeypatch.setattr(resp, "json", _boom)
+
+    with pytest.raises(TypeError):
+        registrar._handle(resp)
+
+
+# ---------------------------------------------------------------------------
 # TRACK-05: courier_code payload behavior (D-08)
 # ---------------------------------------------------------------------------
 
