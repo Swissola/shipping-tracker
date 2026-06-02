@@ -117,6 +117,7 @@ None yet.
 | 260602-m6t | Narrow registrar _handle resp.json() except to (json.JSONDecodeError, ValueError) (WR-06): non-decode errors propagate instead of being masked as empty body; +2 regression tests | 2026-06-02 | 273978c | [260602-m6t-wr-06-fix](./quick/260602-m6t-wr-06-fix/) |
 | 260602-n7v | Cover 4101/4190/HTTP-402 quota paths in registrar _handle (IN-01): +5 parametrized cases, mutation-checked teeth; test-only | 2026-06-02 | 6ab8bf3 | [260602-n7v-in-01-fix](./quick/260602-n7v-in-01-fix/) |
 | 260602-p8x | Explicit unreachable marker in registrar __call__ (IN-02): replace dead `return False` with `raise AssertionError('unreachable')`; no behavior change | 2026-06-02 | 8fcbd3e | [260602-p8x-in-02-fix](./quick/260602-p8x-in-02-fix/) |
+| 260602-q9z | Remove dead conftest response builders + unused synthetic_email_body fixture + orphaned httpx import (IN-03, IN-04); test-only, 65 deletions | 2026-06-02 | 39e3961 | [260602-q9z-in-03-04-fix](./quick/260602-q9z-in-03-04-fix/) |
 
 ## Deferred Items
 

@@ -48,7 +48,7 @@ Net: 65 lines deleted, no additions.
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Remove unused builders + synthetic_email_body + httpx import | _pending_ | tests/conftest.py |
+| 1 | Remove unused builders + synthetic_email_body + httpx import | 39e3961 | tests/conftest.py |
 
 ## Test Results
 
