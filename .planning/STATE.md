@@ -110,6 +110,7 @@ None yet.
 | 260601-pa7 | Make register_and_persist self-defending (WR-01): INSERT OR IGNORE + idempotency docstring + no-op test | 2026-06-01 | 5a58eaf | [260601-pa7-make-register-and-persist-in-shipping-tr](./quick/260601-pa7-make-register-and-persist-in-shipping-tr/) |
 | 260601-q0w | Append TUTORIAL.md Step 5 (Phase 4: Deduplication) per tutorial-maintenance convention | 2026-06-01 | a5ed84b | [260601-q0w-append-tutorial-md-step-for-phase-4](./quick/260601-q0w-append-tutorial-md-step-for-phase-4/) |
 | 260602-fv0 | Correct register_and_persist docstring overclaim (WR-01): registrar is billable/non-idempotent, callers must dedup first; docstring-only, no code change | 2026-06-02 | 8a49029 | [260602-fv0-wr-01-fix](./quick/260602-fv0-wr-01-fix/) |
+| 260602-g3k | Fix spurious data/ dir for bare-filename/:memory: DATABASE_PATH (WR-02): guard makedirs so it matches sqlite connect target; +2 regression tests | 2026-06-02 | 0c504a1 | [260602-g3k-wr-02-fix](./quick/260602-g3k-wr-02-fix/) |
 
 ## Deferred Items
 

@@ -51,7 +51,7 @@ Both tests were confirmed to FAIL against the pre-fix code (spurious `data/` cre
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Guarded makedirs in main() + WR-02 regression tests | _pending_ | shipping_tracker/main.py, tests/test_main.py |
+| 1 | Guarded makedirs in main() + WR-02 regression tests | 0c504a1 | shipping_tracker/main.py, tests/test_main.py |
 
 ## Test Results
 
