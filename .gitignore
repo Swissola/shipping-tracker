@@ -20,3 +20,6 @@ __pycache__/
 dist/
 .venv/
 venv/
+
+# Claude Code — share project settings, ignore agent worktree scratch
+.claude/worktrees/
