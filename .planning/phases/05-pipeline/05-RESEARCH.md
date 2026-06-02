@@ -524,9 +524,9 @@ meta_code = body.get("meta", {}).get("code")
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-### Q-1: Is courier_code truly required, or does omitting it trigger auto-detect?
+### Q-1: Is courier_code truly required, or does omitting it trigger auto-detect? (RESOLVED)
 
 **What we know:** The official Create API help article states `courier_code` is required. The Detect API (free, separate endpoint `/v4/couriers/detect`) returns suggested carrier codes from a tracking number. The CONTEXT.md D-08 decision says "omit the key entirely" when carrier is None — implying the API accepts a create without it.
 
@@ -542,11 +542,15 @@ meta_code = body.get("meta", {}).get("code")
 
 **Suggestion:** Start with strategy 2 (D-08 as locked); include a test that verifies the 4013 error case returns False gracefully. Add an open note that if live testing shows 100% registration failure with carrier=None, switch to strategy 1 (detect endpoint research is out of scope for Phase 5 but the endpoint is documented as free).
 
-### Q-2: Response body when meta.code is absent (CDN / proxy errors)
+**RESOLUTION (2026-06-02, planner decision — strategy 2):** D-08 is a **locked CONTEXT.md decision** and is honored exactly as written: the create payload omits `courier_code` entirely when `carrier` is None/empty (Plan 02 Task 1, `if carrier: payload["courier_code"] = carrier`). The HIGH-RISK uncertainty in A3 (a courier-required rejection from the live API) does **not** require a new dedicated code path or a new test beyond `test_no_courier_code_when_carrier_none`: a courier-required rejection arrives as either 4013, 4015, or another non-4016/non-4021 4xx, and **all** of these already land on the existing "other 4xx → log ERROR (no PII), return False" branch in `_handle` (Plan 02 Task 1). That return-False path means the number is simply not persisted and auto-retries next cron via DEDUP-05 — a graceful, PII-safe deferral, not a crash. We therefore consciously accept strategy 2 with no extra implementation: D-08 as locked, courier-required rejections handled by the generic other-4xx → return False fallthrough. If a live smoke test (a deferred, out-of-scope idea) later shows 100% registration failure for `carrier=None`, the documented fallback is to add the free `/v4/couriers/detect` pre-call (strategy 1) in a follow-up phase — no Phase 5 plan change is needed now. This consciously trades a possible one-run deferral for staying inside the locked D-08 contract and the existing error-handling surface.
+
+### Q-2: Response body when meta.code is absent (CDN / proxy errors) (RESOLVED)
 
 **What we know:** TrackingMore returns a JSON envelope with meta.code for all documented cases. A CDN error page (Cloudflare 503, nginx 502) may return HTML or non-JSON.
 
 **Recommendation:** Wrap `resp.json()` in `try/except` and treat JSON parse failure as a transient 5xx.
+
+**RESOLUTION (2026-06-02):** Already mitigated — Plan 02 Task 1 bakes in the Pitfall 6 defensive parse (`try: body = resp.json() except Exception: body = {}`), so an absent or non-JSON body yields `meta_code = body.get("meta", {}).get("code") == None`. With `meta_code` None, `_handle` falls through to the HTTP status checks: a 5xx CDN/proxy error hits the `status_code >= 500` transient-retry branch (D-02 one retry then return False), and any other non-JSON 4xx lands on the other-4xx → return False fallthrough. No KeyError, no crash, no PII. No additional code or test beyond the defensive parse already specified in Plan 02 Task 1 is required.
 
 ---
 
