@@ -50,7 +50,7 @@ Confirmed via `git stash`: both new tests fail on the old code and pass on the f
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Per-run retry budget + jitter + regression tests | _pending_ | shipping_tracker/registrar.py, tests/test_registrar.py |
+| 1 | Per-run retry budget + jitter + regression tests | a4f2bd8 | shipping_tracker/registrar.py, tests/test_registrar.py |
 
 ## Test Results
 
