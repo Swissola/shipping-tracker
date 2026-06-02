@@ -43,8 +43,9 @@ def mock_router() -> respx.MockRouter:
     """Injectable respx MockRouter for TrackingMoreRegistrar tests (D-04).
 
     PRIVACY: zero live calls — all HTTP is intercepted by respx.
-    Pass to httpx.Client(transport=mock_router) in each test so no request
-    ever escapes to the real TrackingMore API or consumes free-tier quota.
+    Wire into a client via httpx.Client(transport=httpx.MockTransport(
+    mock_router.handler)) (respx 0.23 MockRouter is not itself a transport) so
+    no request ever escapes to the real TrackingMore API or consumes quota.
     """
     return respx.MockRouter()
 

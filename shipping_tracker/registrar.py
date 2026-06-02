@@ -9,9 +9,23 @@ exception string would defeat that guarantee.
 from __future__ import annotations
 
 import logging
+import time
 from typing import Protocol
 
+import httpx
+
 logger = logging.getLogger(__name__)
+
+
+class QuotaExceededError(Exception):
+    """Raised by TrackingMoreRegistrar on quota-exhausted (4021) or rate-limit (429).
+
+    LOG-02: the message MUST NOT contain tracking_number, carrier, or the API key
+    value — only structural strings such as "rate-limit" or "quota-exhausted".
+
+    main()'s dispatch loop catches this specifically and breaks BEFORE the broad
+    ``except Exception`` (D-06). register_and_persist propagates it unchanged.
+    """
 
 
 class Registrar(Protocol):
@@ -38,4 +52,86 @@ class NullRegistrar:
 
     def __call__(self, tracking_number: str, carrier: str | None) -> bool:
         logger.debug("registrar.deferred")  # no tracking_number — LOG-02
+        return False
+
+
+_BASE_URL = "https://api.trackingmore.com"
+
+
+class TrackingMoreRegistrar:
+    """Implements the Registrar Protocol against the TrackingMore v4 API.
+
+    D-04: accepts a constructor-injected ``httpx.Client`` so tests feed a mocked
+    transport (zero live calls). In production, main() owns the client lifetime
+    and closes it (Pitfall 4).
+
+    LOG-02: never embed tracking_number, carrier, or the API key value in any log
+    line or exception message — only structural strings.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        client: httpx.Client | None = None,
+        *,
+        retry_pause: float = 2.0,
+    ) -> None:
+        self._api_key = api_key
+        self._client = client or httpx.Client(timeout=10.0)  # D-03: 10s timeout
+        self._retry_pause = retry_pause
+
+    def __call__(self, tracking_number: str, carrier: str | None) -> bool:
+        # D-08: tracking_number always present; courier_code only when carrier is
+        # truthy — omit the key entirely otherwise (never send null).
+        payload: dict[str, str] = {"tracking_number": tracking_number}
+        if carrier:
+            payload["courier_code"] = carrier
+        for attempt in range(2):
+            try:
+                resp = self._client.post(
+                    f"{_BASE_URL}/v4/trackings/create",
+                    json=payload,
+                    headers={"Tracking-Api-Key": self._api_key},  # TRACK-02
+                )
+            except (httpx.TimeoutException, httpx.ConnectError):
+                if attempt == 0:
+                    time.sleep(self._retry_pause)  # D-02: one ~2s retry
+                    continue
+                return False  # second attempt failed — defer to next cron run
+            try:
+                return self._handle(resp)
+            except httpx.HTTPStatusError:
+                # 5xx transient (D-02): retry once, then defer. No PII in message.
+                if attempt == 0:
+                    time.sleep(self._retry_pause)
+                    continue
+                return False
+        return False  # unreachable; mypy requires it
+
+    def _handle(self, resp: httpx.Response) -> bool:
+        if resp.status_code == 429:
+            raise QuotaExceededError("rate-limit")  # D-06; no PII in message
+        try:
+            body = resp.json()
+        except Exception:
+            body = {}  # Pitfall 6 / Q-2: non-JSON body → fall through to status checks
+        meta_code = body.get("meta", {}).get("code")
+        if meta_code in (200, 201):
+            logger.info("registrar.created")  # D-07: INFO; no tracking_number
+            return True
+        if meta_code in (4016, 4101):  # 4101: defensive SDK-era code
+            logger.info("registrar.already_exists")  # TRACK-03: duplicate = success
+            return True
+        if meta_code in (4021, 4190) or resp.status_code == 402:
+            raise QuotaExceededError("quota-exhausted")  # D-01/D-06; no PII
+        if resp.status_code >= 500:
+            # Transient: __call__'s retry path handles it. No tracking_number in msg.
+            raise httpx.HTTPStatusError(
+                "server-error",
+                request=resp.request,
+                response=resp,
+            )
+        # Any other 4xx (incl. courier-required 4013/4015, Q-1 RESOLUTION): log the
+        # structural meta_code only (no PII), do not persist — defers to next run.
+        logger.error("registrar.error code=%s", meta_code)  # D-07: ERROR, no PII
         return False

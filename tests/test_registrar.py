@@ -49,7 +49,10 @@ def _make_registrar(router: respx.MockRouter) -> TrackingMoreRegistrar:
     retry_pause=0 keeps transient/timeout retry tests fast (<5s) without
     actually pausing. The injected client (D-04) guarantees no live calls.
     """
-    client = httpx.Client(transport=router)
+    # respx 0.23 MockRouter is not itself an httpx transport; wrap its handler in
+    # httpx.MockTransport so the injected client (D-04) routes through the mock
+    # (zero live calls). route.called / route.calls remain fully functional.
+    client = httpx.Client(transport=httpx.MockTransport(router.handler))
     return TrackingMoreRegistrar(api_key=_FAKE_API_KEY, client=client, retry_pause=0)
 
 
