@@ -46,14 +46,17 @@ _FAKE_API_KEY = "FAKE_KEY"
 def _make_registrar(router: respx.MockRouter) -> TrackingMoreRegistrar:
     """Build a TrackingMoreRegistrar backed by a respx mock transport.
 
-    retry_pause=0 keeps transient/timeout retry tests fast (<5s) without
-    actually pausing. The injected client (D-04) guarantees no live calls.
+    retry_pause=0 and retry_jitter=0 keep transient/timeout retry tests fast and
+    deterministic (no real sleep, no random pause) now that jitter is on by
+    default (WR-05). The injected client (D-04) guarantees no live calls.
     """
     # respx 0.23 MockRouter is not itself an httpx transport; wrap its handler in
     # httpx.MockTransport so the injected client (D-04) routes through the mock
     # (zero live calls). route.called / route.calls remain fully functional.
     client = httpx.Client(transport=httpx.MockTransport(router.handler))
-    return TrackingMoreRegistrar(api_key=_FAKE_API_KEY, client=client, retry_pause=0)
+    return TrackingMoreRegistrar(
+        api_key=_FAKE_API_KEY, client=client, retry_pause=0, retry_jitter=0
+    )
 
 
 def _success_route(router: respx.MockRouter) -> None:
@@ -282,6 +285,68 @@ def test_timeout_retries_once_then_defers(
     assert result is False
     assert route.call_count == 2, "timeout must trigger exactly one retry"
     assert is_tracking_registered(db_conn, FAKE_TRACKING_NUMBER_1) is False
+
+
+# ---------------------------------------------------------------------------
+# WR-05: per-run retry budget bound + jittered retry pause
+# ---------------------------------------------------------------------------
+
+
+def test_retry_budget_bounds_cumulative_retries(mock_router: respx.MockRouter) -> None:
+    """WR-05: the per-run retry budget caps total retries across the batch.
+
+    With max_total_retries=1 the first retry-eligible call spends the only budget
+    unit (2 requests: original + retry); the second call finds the budget exhausted
+    and defers immediately (1 request, no retry). Total = 3, not 4.
+    """
+    route = mock_router.post(_CREATE_URL).mock(
+        return_value=httpx.Response(
+            500,
+            json={"meta": {"code": 500, "message": "Server Error"}, "data": {}},
+        )
+    )
+    client = httpx.Client(transport=httpx.MockTransport(mock_router.handler))
+    registrar = TrackingMoreRegistrar(
+        api_key=_FAKE_API_KEY,
+        client=client,
+        retry_pause=0,
+        retry_jitter=0,
+        max_total_retries=1,
+    )
+
+    first = registrar(FAKE_TRACKING_NUMBER_1, None)
+    second = registrar(FAKE_TRACKING_NUMBER_2, None)
+
+    assert first is False
+    assert second is False
+    assert route.call_count == 3, (
+        "budget of 1 → first call retries (2 reqs), second defers (1 req) = 3"
+    )
+
+
+def test_retry_pause_includes_jitter(
+    mock_router: respx.MockRouter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WR-05: each retry pause is retry_pause + random.uniform(0, retry_jitter)."""
+    slept: list[float] = []
+    monkeypatch.setattr("shipping_tracker.registrar.time.sleep", slept.append)
+    monkeypatch.setattr(
+        "shipping_tracker.registrar.random.uniform", lambda _lo, _hi: 0.5
+    )
+
+    mock_router.post(_CREATE_URL).mock(
+        return_value=httpx.Response(
+            500,
+            json={"meta": {"code": 500, "message": "Server Error"}, "data": {}},
+        )
+    )
+    client = httpx.Client(transport=httpx.MockTransport(mock_router.handler))
+    registrar = TrackingMoreRegistrar(
+        api_key=_FAKE_API_KEY, client=client, retry_pause=2.0, retry_jitter=1.0
+    )
+
+    assert registrar(FAKE_TRACKING_NUMBER_1, None) is False
+    assert slept == [2.5], "one retry should pause for retry_pause + jitter (2.0 + 0.5)"
 
 
 # ---------------------------------------------------------------------------
