@@ -43,7 +43,7 @@ Zero executable-code changes.
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Rewrite register_and_persist docstring to match real behavior | cacc9ec | shipping_tracker/db.py |
+| 1 | Rewrite register_and_persist docstring to match real behavior | 8a49029 | shipping_tracker/db.py |
 
 ## Test Results
 
