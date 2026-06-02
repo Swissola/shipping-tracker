@@ -52,7 +52,7 @@ Confirmed via `git stash`: the test fails on the old code (2 RotatingFileHandler
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Make configure_logging idempotent + WR-03 regression test | _pending_ | shipping_tracker/logging_config.py, tests/test_logging_config.py |
+| 1 | Make configure_logging idempotent + WR-03 regression test | 29e60a6 | shipping_tracker/logging_config.py, tests/test_logging_config.py |
 
 ## Test Results
 
