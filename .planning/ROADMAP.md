@@ -129,7 +129,7 @@ Plans:
 Plans:
 
 **Wave 1** *(Nyquist test scaffold — authored before source)*
-- [ ] 05-01-PLAN.md — Wave 0 test scaffold: respx dev dep, conftest mock_router fixture + synthetic TrackingMore response builders, and the 15 failing TRACK-01..05/LOG-02/D-05/D-06 tests in tests/test_registrar.py (RED until source lands)
+- [x] 05-01-PLAN.md — Wave 0 test scaffold: respx dev dep, conftest mock_router fixture + synthetic TrackingMore response builders, and the 15 failing TRACK-01..05/LOG-02/D-05/D-06 tests in tests/test_registrar.py (RED until source lands)
 
 **Wave 2** *(blocked on Wave 1)*
 - [ ] 05-02-PLAN.md — Pipeline slice: TrackingMoreRegistrar + QuotaExceededError (injectable httpx.Client, response→outcome mapping, D-01/D-02/D-08), db.py carrier passthrough, and main() wiring (D-05 key fail-fast, NullRegistrar→TrackingMoreRegistrar swap, QuotaExceededError catch before broad except per D-06) — TRACK-01..05
@@ -173,6 +173,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 2. Gmail | 2/2 | Complete   | 2026-05-31 |
 | 3. Parser Layer | 3/3 | Complete    | 2026-06-01 |
 | 4. Deduplication | 3/3 | Complete    | 2026-06-01 |
-| 5. Pipeline | 0/2 | Not started | - |
+| 5. Pipeline | 1/2 | In Progress|  |
 | 5.1 Status Monitoring & Notifications | 0/TBD | Not started | - |
 | 6. Production | 0/TBD | Not started | - |

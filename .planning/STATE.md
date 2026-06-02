@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-02T07:39:03.609Z"
-last_activity: 2026-06-02 -- Phase 05 planning complete
+last_updated: "2026-06-02T08:52:57.164Z"
+last_activity: 2026-06-02
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 50
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-31)
 
 **Core value:** An email arrives → a tracking number is registered with TrackingMore and you are notified on your phone when the parcel moves, without human intervention, without duplicates, and without ever exposing personal data.
-**Current focus:** Phase 05.1 — status monitoring and notifications
+**Current focus:** Phase 05 — pipeline
 
 ## Current Position
 
-Phase: 05.1
-Plan: Not started
+Phase: 05 (pipeline) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-06-02 -- Phase 05 planning complete
+Last activity: 2026-06-02
 
-Progress: [██████████] 100%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [██████████] 100%
 | Phase 04 P01 | 4 | 2 tasks | 3 files |
 | Phase 04 P02 | 2 | 2 tasks | 4 files |
 | Phase 04 P03 | 3 | 2 tasks | 4 files |
+| Phase 05 P01 | 18 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,7 @@ Recent decisions affecting current work:
 - [Phase ?]: D-01: _get_all_sender_domains() replaces os.getenv GMAIL_SENDER_LIST; parser constants own the Gmail query sender list
 - [Phase ?]: D-03: PARSERS module-level registry with first-match-wins dispatch loop in main(); dispatch loop collects list[TrackingInfo] for Phase 4
 - [Phase ?]: Phase 5 drops in TrackingMoreRegistrar with zero db.py changes
+- [Phase ?]: Phase 5 Plan 01: Nyquist Wave 0 RED test scaffold authored before source; temporary tests.test_registrar mypy override added, Plan 02 must remove it
 
 ### Pending Todos
 
@@ -113,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-01T19:21:33.356Z
+Last session: 2026-06-02T08:52:40.949Z
 Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-pipeline/05-CONTEXT.md
+Resume file: None
