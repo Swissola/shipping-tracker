@@ -132,7 +132,10 @@ class TrackingMoreRegistrar:
                 if attempt == 0 and self._sleep_for_retry():
                     continue
                 return False
-        return False  # unreachable; mypy requires it
+        # Unreachable: both attempts in the loop above return on every path. The
+        # explicit raise (vs a silent `return False`) makes that intent clear and
+        # still satisfies mypy's return-path analysis (IN-02).
+        raise AssertionError("unreachable")
 
     def _handle(self, resp: httpx.Response) -> bool:
         if resp.status_code == 429:
