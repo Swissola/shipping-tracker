@@ -102,7 +102,13 @@ def main() -> int:
         try:
             emails = fetch_unread_shipping_emails(senders, window)
         except FileNotFoundError as exc:
-            logger.error("gmail.credentials.missing path=%s", exc.filename)
+            # WR-04 / privacy: log only the basename. exc.filename may be an
+            # absolute path like /home/<user>/.config/.../credentials.json, which
+            # would leak an OS username into a log destined for a public project.
+            logger.error(
+                "gmail.credentials.missing name=%s",
+                os.path.basename(exc.filename or ""),
+            )
             return 1
 
         # WR-03: gmail.client already logs "gmail.fetch.complete" at INFO — the
