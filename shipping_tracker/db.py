@@ -69,6 +69,7 @@ def register_and_persist(
     message_id: str,
     tracking_number: str,
     registrar: Registrar,
+    carrier: str | None = None,
 ) -> bool:
     """Call registrar; on success write both rows atomically; on failure write neither.
 
@@ -83,9 +84,12 @@ def register_and_persist(
     INSERT OR IGNORE used in main.py's DEDUP-04 mark-processed branch.
 
     PRIVACY (LOG-02): this function logs only message_id and never tracking_number.
+
+    ``carrier`` is the optional courier hint fed from TrackingInfo.carrier (D-08);
+    the registrar omits courier_code entirely when it is None/empty.
     """
     try:
-        success = registrar(tracking_number, None)  # carrier deferred to Phase 5
+        success = registrar(tracking_number, carrier)  # D-08: parser carrier hint
     except Exception:
         raise  # propagate to main.py WR-04 handler — single log site (D-08)
     if not success:

@@ -178,9 +178,17 @@ def test_fetch_does_not_log_pii(caplog: pytest.LogCaptureFixture) -> None:
     )
 
 
-def test_main_calls_fetch_and_returns_zero() -> None:
+def test_main_calls_fetch_and_returns_zero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """main() invokes fetch_unread_shipping_emails and returns 0 (no network)."""
     from shipping_tracker.main import main
+
+    # Phase 5 D-05: a (synthetic) TRACKINGMORE_API_KEY must be set or main()
+    # fail-fasts with exit 1 before fetch. In-memory DB keeps the test side-effect
+    # free (no data/ file written).
+    monkeypatch.setenv("TRACKINGMORE_API_KEY", "FAKE_KEY")
+    monkeypatch.setenv("DATABASE_PATH", ":memory:")
 
     with patch(
         "shipping_tracker.main.fetch_unread_shipping_emails",

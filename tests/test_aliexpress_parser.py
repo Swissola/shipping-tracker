@@ -342,6 +342,9 @@ def test_main_dispatch_loop_logs_pii_safely_on_error(
 
     # No-op logging setup so caplog captures cleanly and no log file is written.
     # Use in-memory SQLite so no side-effect DB file is created during the test.
+    # Phase 5 D-05: a (synthetic) TRACKINGMORE_API_KEY must be present or main()
+    # fail-fasts with exit 1 before ever reaching the dispatch loop under test.
+    monkeypatch.setenv("TRACKINGMORE_API_KEY", "FAKE_KEY")
     monkeypatch.setenv("DATABASE_PATH", ":memory:")
     monkeypatch.setattr(main_mod, "configure_logging", lambda: None)
     monkeypatch.setattr(

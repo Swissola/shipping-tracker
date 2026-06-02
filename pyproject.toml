@@ -47,18 +47,6 @@ python_version = "3.11"
 module = ["google.*", "googleapiclient.*", "google_auth_oauthlib.*"]
 ignore_missing_imports = true
 
-# WAVE 0 (Nyquist) TEMPORARY OVERRIDE — REMOVE IN PLAN 02.
-# tests/test_registrar.py is authored before the source it tests: it imports
-# QuotaExceededError / TrackingMoreRegistrar from shipping_tracker.registrar
-# (which Plan 02 adds) and injects a respx.MockRouter as an httpx transport.
-# Until Plan 02 lands those symbols, --strict mypy reports attr-defined and
-# arg-type errors that are expected RED state, not real defects. This override
-# keeps the pre-commit/CI mypy gate green for the rest of the tree; Plan 02 must
-# delete this block once the source exists so full strict checking is restored.
-[[tool.mypy.overrides]]
-module = ["tests.test_registrar"]
-ignore_errors = true
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

@@ -7,6 +7,7 @@ import logging
 import os
 import sqlite3
 
+import httpx
 from dotenv import load_dotenv
 
 from shipping_tracker.db import (
@@ -19,7 +20,11 @@ from shipping_tracker.gmail import fetch_unread_shipping_emails
 from shipping_tracker.logging_config import configure_logging
 from shipping_tracker.parsers.aliexpress import AliExpressParser
 from shipping_tracker.parsers.base import BaseParser, TrackingInfo
-from shipping_tracker.registrar import NullRegistrar, Registrar
+from shipping_tracker.registrar import (
+    QuotaExceededError,
+    Registrar,
+    TrackingMoreRegistrar,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +69,27 @@ def main() -> int:
     load_dotenv()
     configure_logging()
 
+    # D-05: fail-fast before any I/O if TRACKINGMORE_API_KEY is missing/empty.
+    # Runs before the Gmail fetch and before the DB open. Never log the key value.
+    api_key = os.getenv("TRACKINGMORE_API_KEY", "").strip()
+    if not api_key:
+        logger.error("config.missing_api_key")  # LOG-02: no key value
+        return 1
+
     db_path = os.getenv("DATABASE_PATH", "data/shipping-tracker.db")
     os.makedirs(os.path.dirname(db_path) or "data", exist_ok=True)
     conn = sqlite3.connect(db_path)
 
+    # Pitfall 4: main() owns the httpx.Client lifetime — named local so it can be
+    # closed in finally. Inject it into the registrar (D-04 testable seam).
+    http_client = httpx.Client(timeout=10.0)  # D-03: 10s timeout
+
     try:
         init_db(conn)
-        registrar: Registrar = NullRegistrar()
+        # Phase 5: real registrar against the injected client.
+        registrar: Registrar = TrackingMoreRegistrar(
+            api_key=api_key, client=http_client
+        )
 
         senders = _get_all_sender_domains()
         window = int(os.getenv("GMAIL_LOOKBACK_DAYS", "30"))
@@ -127,10 +146,22 @@ def main() -> int:
 
                 # DEDUP-05: register-then-persist (atomic)
                 persisted = register_and_persist(
-                    conn, email.message_id, result.tracking_number, registrar
+                    conn,
+                    email.message_id,
+                    result.tracking_number,
+                    registrar,
+                    carrier=result.carrier,  # D-08: optional courier hint
                 )
                 if persisted:
                     tracking_results.append(result)
+
+            except QuotaExceededError:
+                # D-06 CRITICAL: MUST precede the broad except Exception below, or
+                # the broad catch swallows this and the loop continues. D-01/D-07:
+                # one WARNING summary, no PII; break so remaining numbers retry next
+                # cron via DEDUP-05.
+                logger.warning("registrar.quota_exceeded")
+                break
 
             except Exception as exc:
                 # WR-04: PII-safe — log message_id + exception TYPE only (LOG-02).
@@ -154,5 +185,6 @@ def main() -> int:
         )
     finally:
         conn.close()
+        http_client.close()  # Pitfall 4: main() owns and closes the connection pool
 
     return 0
