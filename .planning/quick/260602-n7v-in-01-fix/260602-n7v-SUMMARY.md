@@ -46,7 +46,7 @@ Source restored; `git diff` on `registrar.py` is empty.
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Parametrized coverage for 4101 / 4190 / HTTP-402 | _pending_ | tests/test_registrar.py |
+| 1 | Parametrized coverage for 4101 / 4190 / HTTP-402 | 6ab8bf3 | tests/test_registrar.py |
 
 ## Test Results
 
