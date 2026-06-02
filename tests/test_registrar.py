@@ -207,6 +207,49 @@ def test_quota_exhausted_raises_quota_error(mock_router: respx.MockRouter) -> No
         registrar(FAKE_TRACKING_NUMBER_1, None)
 
 
+@pytest.mark.parametrize("meta_code", [4016, 4101])
+def test_already_exists_codes_return_true(
+    mock_router: respx.MockRouter, meta_code: int
+) -> None:
+    """IN-01 / TRACK-03: both already-exists codes (4016, 4101) return True.
+
+    4101 is a defensive SDK-era code that was handled but previously untested.
+    """
+    mock_router.post(_CREATE_URL).mock(
+        return_value=httpx.Response(
+            400, json={"meta": {"code": meta_code, "message": "exists"}, "data": {}}
+        )
+    )
+    registrar = _make_registrar(mock_router)
+
+    assert registrar(FAKE_TRACKING_NUMBER_1, None) is True
+
+
+@pytest.mark.parametrize(
+    ("status_code", "meta_code"),
+    [(400, 4021), (400, 4190), (402, 4013)],
+)
+def test_quota_triggers_raise(
+    mock_router: respx.MockRouter, status_code: int, meta_code: int
+) -> None:
+    """IN-01 / D-06: all quota triggers raise QuotaExceededError.
+
+    Covers meta_code 4190 and the status-402 trigger. The 402 case uses a neutral
+    meta_code (4013) to prove the status-based trigger fires regardless of meta —
+    both paths were handled but previously untested.
+    """
+    mock_router.post(_CREATE_URL).mock(
+        return_value=httpx.Response(
+            status_code,
+            json={"meta": {"code": meta_code, "message": "quota"}, "data": {}},
+        )
+    )
+    registrar = _make_registrar(mock_router)
+
+    with pytest.raises(QuotaExceededError):
+        registrar(FAKE_TRACKING_NUMBER_1, None)
+
+
 def test_quota_error_breaks_dispatch_loop(
     mock_router: respx.MockRouter, db_conn: sqlite3.Connection
 ) -> None:
