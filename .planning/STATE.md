@@ -114,6 +114,7 @@ None yet.
 | 260602-h2n | Make configure_logging idempotent (WR-03): clear+close existing root handlers before adding, fixing handler/fd leak + duplicate log lines; +1 regression test | 2026-06-02 | 29e60a6 | [260602-h2n-wr-03-fix](./quick/260602-h2n-wr-03-fix/) |
 | 260602-j4p | PII-safe missing-credentials log (WR-04, Phase 05): log os.path.basename not full path so absolute GMAIL_CREDENTIALS_PATH can't leak an OS username; +1 regression test | 2026-06-02 | ffe6540 | [260602-j4p-wr-04-fix](./quick/260602-j4p-wr-04-fix/) |
 | 260602-k5r | Bound per-run registrar retries + add jitter (WR-05): per-run retry budget caps cumulative sleep, random.uniform jitter de-syncs retries; +2 regression tests. Decision: budget+jitter (CONTEXT.md) | 2026-06-02 | a4f2bd8 | [260602-k5r-wr-05-fix](./quick/260602-k5r-wr-05-fix/) |
+| 260602-m6t | Narrow registrar _handle resp.json() except to (json.JSONDecodeError, ValueError) (WR-06): non-decode errors propagate instead of being masked as empty body; +2 regression tests | 2026-06-02 | 273978c | [260602-m6t-wr-06-fix](./quick/260602-m6t-wr-06-fix/) |
 
 ## Deferred Items
 

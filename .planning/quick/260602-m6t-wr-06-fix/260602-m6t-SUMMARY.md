@@ -53,7 +53,7 @@ Confirmed via `git stash`: the propagate test **fails on the old bare `except Ex
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Narrow resp.json() except + WR-06 regression tests | _pending_ | shipping_tracker/registrar.py, tests/test_registrar.py |
+| 1 | Narrow resp.json() except + WR-06 regression tests | 273978c | shipping_tracker/registrar.py, tests/test_registrar.py |
 
 ## Test Results
 
