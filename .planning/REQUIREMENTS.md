@@ -37,11 +37,11 @@
 
 ### Tracking Provider Integration (TrackingMore)
 
-- [ ] **TRACK-01**: Tool registers tracking numbers via the TrackingMore Create Trackings API (`POST https://api.trackingmore.com/v4/trackings/create`)
-- [ ] **TRACK-02**: API key is read exclusively from the `TRACKINGMORE_API_KEY` environment variable; never hardcoded
-- [ ] **TRACK-03**: A duplicate / already-exists response from TrackingMore is handled gracefully (not treated as an error)
-- [ ] **TRACK-04**: All API responses are logged; rate-limit and monthly-quota errors (free tier: 50 new trackings/month) are handled without crashing
-- [ ] **TRACK-05**: The courier is auto-detected by TrackingMore; if the parser supplied a carrier it is passed only as an optional `courier_code` hint, and registration never requires it
+- [x] **TRACK-01**: Tool registers tracking numbers via the TrackingMore Create Trackings API (`POST https://api.trackingmore.com/v4/trackings/create`)
+- [x] **TRACK-02**: API key is read exclusively from the `TRACKINGMORE_API_KEY` environment variable; never hardcoded
+- [x] **TRACK-03**: A duplicate / already-exists response from TrackingMore is handled gracefully (not treated as an error)
+- [x] **TRACK-04**: All API responses are logged; rate-limit and monthly-quota errors (free tier: 50 new trackings/month) are handled without crashing
+- [x] **TRACK-05**: The courier is auto-detected by TrackingMore; if the parser supplied a carrier it is passed only as an optional `courier_code` hint, and registration never requires it
 
 ### Status Monitoring
 
@@ -113,11 +113,11 @@ Updated during roadmap creation and the TrackingMore provider replan (2026-05-31
 | DEDUP-03 | Phase 4 | Complete |
 | DEDUP-04 | Phase 4 | Complete |
 | DEDUP-05 | Phase 4 | Complete |
-| TRACK-01 | Phase 5 | Pending |
-| TRACK-02 | Phase 5 | Pending |
-| TRACK-03 | Phase 5 | Pending |
-| TRACK-04 | Phase 5 | Pending |
-| TRACK-05 | Phase 5 | Pending |
+| TRACK-01 | Phase 5 | Complete |
+| TRACK-02 | Phase 5 | Complete |
+| TRACK-03 | Phase 5 | Complete |
+| TRACK-04 | Phase 5 | Complete |
+| TRACK-05 | Phase 5 | Complete |
 | MONITOR-01 | Phase 5.1 | Pending |
 | MONITOR-02 | Phase 5.1 | Pending |
 | NOTIFY-01 | Phase 5.1 | Pending |

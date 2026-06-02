@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
  (completed 2026-05-31)
 - [x] **Phase 3: Parser Layer** - AliExpress emails parsed via pluggable BaseParser architecture (completed 2026-06-01)
 - [x] **Phase 4: Deduplication** - SQLite state layer enforces idempotency across all runs (completed 2026-06-01)
-- [ ] **Phase 5: Pipeline** - TrackingMore registration wired end-to-end; tool runs completely
+- [x] **Phase 5: Pipeline** - TrackingMore registration wired end-to-end; tool runs completely (completed 2026-06-02)
 - [ ] **Phase 5.1: Status Monitoring & Notifications** *(INSERTED)* - poll for status changes, push phone notifications
 - [ ] **Phase 6: Production** - Logging, deployment, and documentation make the tool cron-ready
 
@@ -132,7 +132,7 @@ Plans:
 - [x] 05-01-PLAN.md — Wave 0 test scaffold: respx dev dep, conftest mock_router fixture + synthetic TrackingMore response builders, and the 15 failing TRACK-01..05/LOG-02/D-05/D-06 tests in tests/test_registrar.py (RED until source lands)
 
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 05-02-PLAN.md — Pipeline slice: TrackingMoreRegistrar + QuotaExceededError (injectable httpx.Client, response→outcome mapping, D-01/D-02/D-08), db.py carrier passthrough, and main() wiring (D-05 key fail-fast, NullRegistrar→TrackingMoreRegistrar swap, QuotaExceededError catch before broad except per D-06) — TRACK-01..05
+- [x] 05-02-PLAN.md — Pipeline slice: TrackingMoreRegistrar + QuotaExceededError (injectable httpx.Client, response→outcome mapping, D-01/D-02/D-08), db.py carrier passthrough, and main() wiring (D-05 key fail-fast, NullRegistrar→TrackingMoreRegistrar swap, QuotaExceededError catch before broad except per D-06) — TRACK-01..05
 
 ### Phase 05.1: Status Monitoring and Notifications (INSERTED)
 **Goal**: The tool monitors in-flight parcels by polling TrackingMore for status changes and sends a push notification when a parcel moves — giving phone-side awareness ("out for delivery", "delivered") without any consumer app or home-screen widget, and without consuming the monthly registration quota.
@@ -173,6 +173,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 2. Gmail | 2/2 | Complete   | 2026-05-31 |
 | 3. Parser Layer | 3/3 | Complete    | 2026-06-01 |
 | 4. Deduplication | 3/3 | Complete    | 2026-06-01 |
-| 5. Pipeline | 1/2 | In Progress|  |
+| 5. Pipeline | 2/2 | Complete   | 2026-06-02 |
 | 5.1 Status Monitoring & Notifications | 0/TBD | Not started | - |
 | 6. Production | 0/TBD | Not started | - |

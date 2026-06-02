@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-02T08:52:57.164Z"
+status: verifying
+last_updated: "2026-06-02T09:00:20.341Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 12
-  completed_plans: 11
-  percent: 50
+  completed_plans: 12
+  percent: 63
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: .planning/PROJECT.md (updated 2026-05-31)
 
 Phase: 05 (pipeline) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-02
 
-Progress: [█████████░] 92%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [█████████░] 92%
 | Phase 04 P02 | 2 | 2 tasks | 4 files |
 | Phase 04 P03 | 3 | 2 tasks | 4 files |
 | Phase 05 P01 | 18 | 2 tasks | 5 files |
+| Phase 05 P02 | 4 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,8 @@ Recent decisions affecting current work:
 - [Phase ?]: D-03: PARSERS module-level registry with first-match-wins dispatch loop in main(); dispatch loop collects list[TrackingInfo] for Phase 4
 - [Phase ?]: Phase 5 drops in TrackingMoreRegistrar with zero db.py changes
 - [Phase ?]: Phase 5 Plan 01: Nyquist Wave 0 RED test scaffold authored before source; temporary tests.test_registrar mypy override added, Plan 02 must remove it
+- [Phase ?]: Plan 05-02: 5xx transient-retry catch lives in TrackingMoreRegistrar.__call__ so D-02 single-retry yields call_count==2
+- [Phase ?]: Plan 05-02: courier-required rejections (Q-1) handled by generic other-4xx return False fallthrough; D-08 honored with no extra code path
 
 ### Pending Todos
 
@@ -115,6 +118,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-02T08:52:40.949Z
+Last session: 2026-06-02T09:00:00.097Z
 Stopped at: Phase 5 context gathered
 Resume file: None
