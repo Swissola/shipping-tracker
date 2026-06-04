@@ -58,7 +58,7 @@ status: secured
 
 ## Advisory — Developer Identity in Git History (not a Phase 01 threat-register item)
 
-Every commit's author trailer is `Swissola <9119417+Swissola@users.noreply.github.com>`. This is standard git metadata (it lives in commit author/committer headers, **not** in any file content), so it is **not** a Phase 01 threat-model finding and does not block this phase.
+Every commit's author trailer uses the GitHub noreply address (`9119417+Swissola@users.noreply.github.com`). This is standard git metadata (it lives in commit author/committer headers, **not** in any file content), so it is **not** a Phase 01 threat-model finding and does not block this phase.
 
 However, given the project's non-negotiable constraint — *"no PII in source, tests, logs, or history — project will be public"* — a personal email address embedded in every commit of a repo that will be **published** is worth a conscious decision before the first public push. Options if the user wants it scrubbed:
 - Configure a GitHub `noreply` author email (`git config user.email "<id>+username@users.noreply.github.com"`) going forward, and
