@@ -103,8 +103,8 @@ Phase 1 was split into **two plans**:
 
 Each task became an atomic commit:
 
-- Plan 01 → `008ac7f` (manifest/gitignore/env) and `29f6913` (package files).
-- Plan 02 → `5acb308` (pre-commit + CI) and `ab64c2e` (tests).
+- Plan 01 → `008ac7f` [HASH-UNMAPPABLE: not in current git history] (manifest/gitignore/env) and `29f6913` [HASH-UNMAPPABLE: not in current git history] (package files).
+- Plan 02 → `5acb308` [HASH-UNMAPPABLE: not in current git history] (pre-commit + CI) and `ab64c2e` [HASH-UNMAPPABLE: not in current git history] (tests).
 
 By the end, the skeleton ran (`python -m shipping_tracker` exits 0, prints nothing),
 `ruff` + `mypy --strict` were green, and 6 smoke tests passed.
@@ -190,7 +190,7 @@ logs — proven by tests, without needing real credentials in CI.
 - **Security decision:** the OAuth scope is a hard-coded module constant —
   `gmail.readonly` — and is **never** read from `.env`. The tool can read mail and nothing
   else, by construction. (Threat **T-02-scope**.)
-- 8 mypy-strict tests, all synthetic. Commits `236ccd4`, `173a33e`, `2132dc1`.
+- 8 mypy-strict tests, all synthetic. Commits `7382af9`, `5c014be`, `0cc3660`.
 
 ### 3b. Plan 02 — The fetch loop (built test-first)
 
@@ -204,7 +204,7 @@ This plan was done **TDD-style** — failing tests first (RED), then the impleme
   message ID or a count. (Threat **T-02-logpii**.)
 - Rate-limit resilience: `_execute_with_backoff()` retries on HTTP 429/403 with jittered
   exponential backoff. (Threat **T-02-quota**.)
-- Commits `541ca77` (RED), `04bf93f` (GREEN), `faa852a` (wire into `main()`).
+- Commits `0143a16` (RED), `a8eb2c1` (GREEN), `976687d` (wire into `main()`).
 
 A nice example of an honest deviation: wiring the real fetch into `main()` meant the tool now
 exits **1** (not 0) when `credentials.json` is missing — which broke a Phase 1 smoke test
@@ -236,7 +236,7 @@ TrackingMore replan, since the provider auto-detects the courier (D-04); and a "
 no tracking number" email (the routine pre-shipment *"order confirmed"*) is an **expected,
 non-fatal** skip, not an error (D-05).
 
-Research (`8d4ddf1`) confirmed the real AliExpress sender domains and label strings without
+Research (`f3cc477`) confirmed the real AliExpress sender domains and label strings without
 ever committing real data, and made two recommendations the planner adopted: `extract()`
 should **return `None`** rather than raise on a no-tracking email (exceptions are the wrong
 tool for an expected case), and the parser registry should just be a `PARSERS` list in
@@ -250,20 +250,20 @@ dimensions before a line of code was written):
 - **Wave 1 — `03-01` (RED scaffold):** the `carrier: str | None` edit (D-04) and the new
   `extract() -> TrackingInfo | None` contract (D-05) in `base.py`, plus synthetic
   `FAKE`-prefixed fixtures and a deliberately-failing test suite. Tests exist *before* the
-  implementation. Commits `0b45f07`, `5f9212c`, `a04571a`.
+  implementation. Commits `4de7042`, `55ae356`, `2f50395`.
 - **Wave 2 — `03-02` (the parser):** `AliExpressParser` with a module-level sender-domain
   constant, a label regex, and a **ReDoS-safe** shape fallback (every alternative requires a
   letter component, so a purely-numeric order reference can't be mis-read as a tracking
-  number). Unit tests go green. Commits `6eaa8d0`, `66037f5`.
+  number). Unit tests go green. Commits `edbd5d6`, `8395d50`.
 - **Wave 3 — `03-03` (dispatch):** the `PARSERS` registry and the first-match-wins loop wired
   into `main()`, completing the `RawEmail → TrackingInfo` path. Integration tests go green.
-  Commits `ea9492f`, `5f16bec`.
+  Commits `efe9f71`, `707f13e`.
 
 ### 4c. The course-correction: the code review caught what the tests missed ⚠️
 
 This is the instructive moment of Phase 3 (the Step-2 equivalent of the 17track→TrackingMore
 switch). After execution, **every one of the 32 tests was green** and the phase looked done.
-The automated `/gsd-code-review` gate (`e41ad67`) still found two real bugs:
+The automated `/gsd-code-review` gate (`31c7169`) still found two real bugs:
 
 - **CR-01 — silent truncation.** The tracking-number capture `([A-Z0-9]{8,35})` had no
   trailing boundary, so a token longer than 35 characters was captured as its *first 35
@@ -278,21 +278,21 @@ The automated `/gsd-code-review` gate (`e41ad67`) still found two real bugs:
 The fixer repaired both: CR-01 gained a `(?![A-Z0-9])` boundary (an over-length token now
 fails cleanly rather than truncating), and CR-02 added a `sender_domains` field to the
 `BaseParser` ABC with `main()` aggregating over `PARSERS` — restoring the true single-file
-drop-in. Commits `3ecad06`, `e839166`.
+drop-in. Commits `59616b3`, `4c7bfc9`.
 
 ### 4d. Verify, secure & a follow-up
 
 Goal-backward verification ([`03-VERIFICATION.md`](.planning/phases/03-parser-layer/03-VERIFICATION.md),
-`c5eaf4d`) confirmed **9/9 must-haves** and all three success criteria *true against the code*
+`1ea1de4`) confirmed **9/9 must-haves** and all three success criteria *true against the code*
 — including the now-repaired drop-in, re-tested with a real second parser. `/gsd-secure-phase`
-closed **11/11 threats** (`31a6c3d`), and specifically re-checked that the review fixes
+closed **11/11 threats** (`30fca07`), and specifically re-checked that the review fixes
 preserved their mitigations (CR-02 actually *strengthened* the sender-list single-source-of-truth).
 
 One honest follow-up: a human read of the fixes surfaced a *forward-looking* PII risk — the
 dispatch error handler used `logger.exception`, which renders the traceback and the
 exception's own message; a careless third-party parser raising `ValueError(f"bad body: {body}")`
 would leak that into the JSON log. Hardened to log the `message_id` and exception **type**
-only, with a contract note on `BaseParser.extract` (`1c5b347`).
+only, with a contract note on `BaseParser.extract` (`65982ea`).
 
 **Teaching point — green tests are not a proof of correctness; they prove what you thought to
 test.** All 32 tests passed *and* the phase passed goal-verification, yet the independent
@@ -362,20 +362,20 @@ Planning produced 3 plans across 3 strictly-sequential waves:
   Pre-commit mypy required `# type: ignore[import-not-found]` on the not-yet-written
   `shipping_tracker.db` imports (standard Nyquist Wave 0 pattern). The 15 tests covered
   DEDUP-01 through DEDUP-05 including the `test_retry_proof` integration test. Commits
-  `fad212a`, `d54951d`.
+  `69a30bf`, `ef7c4fe`.
 
 - **Wave 1 — `04-02` (the state layer):** `shipping_tracker/db.py` (`init_db`,
   `is_email_processed`, `is_tracking_registered`, `register_and_persist`) plus
   `shipping_tracker/registrar.py` (the `Registrar` `typing.Protocol` and `NullRegistrar`).
   The atomic `with conn:` two-row write turned all 15 RED tests GREEN; 57/57 full-suite
   passing. Wave 0's `# type: ignore[import-not-found]` comments were removed as a
-  pre-commit-caught `[unused-ignore]` deviation. Commit `7b886c0`.
+  pre-commit-caught `[unused-ignore]` deviation. Commit `1a02e20`.
 
 - **Wave 3 — `04-03` (main wiring):** the SQLite connection lifecycle (`sqlite3.connect` →
   `init_db` → `finally: conn.close()`) in `main()`, `NullRegistrar` seam injection, and the
   DEDUP-03 (before parse) / DEDUP-04 (`INSERT OR IGNORE` mark-processed in D-03 branch) /
   DEDUP-05 (`register_and_persist`) checks wired into the dispatch loop. `DATABASE_PATH`
-  added to `.env.example`, `data/` added to `.gitignore`. Commits `f36566b`, `eb62b96`.
+  added to `.env.example`, `data/` added to `.gitignore`. Commits `41b2332`, `4cd9c43`.
 
 ### 5c. The course-correction: `INSERT OR IGNORE` and the self-undercut retry guarantee ⚠️
 
@@ -400,7 +400,7 @@ recorded it for a mandatory follow-up.
 
 It was fixed via quick task `260601-pa7`: both `INSERT` statements in `register_and_persist`
 became `INSERT OR IGNORE`, and a `test_register_and_persist_idempotent` regression test was
-added to prove a repeat call is a silent no-op returning `True`. Commit `5a58eaf`. The two
+added to prove a repeat call is a silent no-op returning `True`. Commit `5a1c950`. The two
 write paths now agree; the function is self-defending regardless of caller.
 
 ### 5d. Verify & the honest deferred state
