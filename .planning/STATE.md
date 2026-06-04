@@ -118,6 +118,7 @@ None yet.
 | 260602-n7v | Cover 4101/4190/HTTP-402 quota paths in registrar _handle (IN-01): +5 parametrized cases, mutation-checked teeth; test-only | 2026-06-02 | bfaa5c4 | [260602-n7v-in-01-fix](./quick/260602-n7v-in-01-fix/) |
 | 260602-p8x | Explicit unreachable marker in registrar __call__ (IN-02): replace dead `return False` with `raise AssertionError('unreachable')`; no behavior change | 2026-06-02 | 31c782e | [260602-p8x-in-02-fix](./quick/260602-p8x-in-02-fix/) |
 | 260602-q9z | Remove dead conftest response builders + unused synthetic_email_body fixture + orphaned httpx import (IN-03, IN-04); test-only, 65 deletions | 2026-06-02 | 449a306 | [260602-q9z-in-03-04-fix](./quick/260602-q9z-in-03-04-fix/) |
+| 260604-cp7 | Scrub maintainer real email from full git history (filter-repo --replace-text → noreply form) across all 130 commits + force-push private origin; PII-clean for public release. Pre-rewrite backup tag `backup/pre-email-scrub` + bundle retained locally | 2026-06-04 | 6d192e1 | [260604-cp7-scrub-real-email-from-history-before-pub](./quick/260604-cp7-scrub-real-email-from-history-before-pub/) |
 
 ## Deferred Items
 
@@ -127,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-02T09:00:00.097Z
-Stopped at: Phase 5 context gathered
+Last session: 2026-06-04T08:08:38.570Z
+Stopped at: Quick task 260604-cp7 complete — git history scrubbed of real email + force-pushed; Phase 5 context still gathered
 Resume file: None
