@@ -119,6 +119,7 @@ None yet.
 | 260602-p8x | Explicit unreachable marker in registrar __call__ (IN-02): replace dead `return False` with `raise AssertionError('unreachable')`; no behavior change | 2026-06-02 | 31c782e | [260602-p8x-in-02-fix](./quick/260602-p8x-in-02-fix/) |
 | 260602-q9z | Remove dead conftest response builders + unused synthetic_email_body fixture + orphaned httpx import (IN-03, IN-04); test-only, 65 deletions | 2026-06-02 | 449a306 | [260602-q9z-in-03-04-fix](./quick/260602-q9z-in-03-04-fix/) |
 | 260604-cp7 | Scrub maintainer real email from full git history (filter-repo --replace-text → noreply form) across all 130 commits + force-push private origin; PII-clean for public release. Pre-rewrite backup tag `backup/pre-email-scrub` + bundle retained locally | 2026-06-04 | 6d192e1 | [260604-cp7-scrub-real-email-from-history-before-pub](./quick/260604-cp7-scrub-real-email-from-history-before-pub/) |
+| 260604-ox3 | Append TUTORIAL.md Step 6 (Phase 5 Pipeline) + audit Steps 0-5: corrected 4 inaccuracies, incl. 4 fabricated Phase 1 commit hashes, stale date/phase-count, wrong 5.1 Next pointer | 2026-06-04 | f0ca87a | [260604-ox3-append-tutorial-md-step-6-phase-5-pipeli](./quick/260604-ox3-append-tutorial-md-step-6-phase-5-pipeli/) |
 
 ## Deferred Items
 
@@ -128,6 +129,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-04T08:08:38.570Z
-Stopped at: Quick task 260604-cp7 complete — git history scrubbed of real email + force-pushed; Phase 5 context still gathered
+Last session: 2026-06-04 - Completed quick task 260604-ox3 (TUTORIAL Step 6 + audit)
+Stopped at: TUTORIAL.md caught up to Phase 5 + audited (fabricated Phase 1 hashes fixed). Phase 5 fully verified. Next planned work: Phase 5.1 (Status Monitoring & Notifications) — needs discuss/context first
 Resume file: None
