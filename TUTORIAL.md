@@ -5,8 +5,8 @@
 > explained to someone who wasn't in the room. Every step below maps to real artifacts
 > in `.planning/` and real commits in git history — nothing here is invented for the story.
 >
-> Dates are absolute (the work happened on **2026-05-31**). Commit hashes are real and
-> can be checked with `git show <hash>`.
+> Dates are absolute (the work spanned **2026-05-31** to **2026-06-02**). Commit hashes
+> are real and can be checked with `git show <hash>`.
 
 ---
 
@@ -437,6 +437,229 @@ existed — an honest "incomplete but verified" state beats a half-wired loop ev
 
 ---
 
+## Step 6 — Phase 5: Pipeline
+
+**Goal:** wire the real TrackingMore API into the pipeline that Phase 4 prepared — Gmail
+fetch → parse → deduplicate → register — so a tracking number extracted from an email is
+registered via `POST https://api.trackingmore.com/v4/trackings/create` and persisted to
+SQLite on a confirmed success response.
+
+This is where the Phase 2 decision (see Step 2) to switch from 17track to TrackingMore is
+finally *implemented*. Step 2 describes why the switch was made; Step 6 is where
+`NullRegistrar` is replaced by the real client.
+
+### 6a. Discuss & research
+
+`/gsd-discuss-phase 5` gathered Phase 5 context on **2026-06-01**, producing eight locked
+decisions in [`05-CONTEXT.md`](.planning/phases/05-pipeline/05-CONTEXT.md). The full
+option table for each decision is in
+[`05-DISCUSSION-LOG.md`](.planning/phases/05-pipeline/05-DISCUSSION-LOG.md). The decisions
+that shaped everything:
+
+- **D-01 — Quota short-circuit:** on the first `429` or quota-exhausted response from
+  TrackingMore, stop creating for the rest of the run (emit one WARNING summary line).
+  Remaining unregistered numbers stay unwritten and auto-retry next cron via DEDUP-05.
+  Rejected: keep-trying-every-number (burns N pointless calls once quota is gone).
+
+- **D-06 — Signal mechanism for the short-circuit:** the registrar raises a typed
+  `QuotaExceededError`; `register_and_persist` propagates it; `main()`'s dispatch loop
+  catches it specifically and `break`s. **Critical wiring constraint:** the
+  `except QuotaExceededError: … break` clause MUST sit *before* the loop's existing broad
+  `except Exception`, or the broad catch swallows it and the loop keeps running. This
+  ordering is both tested (`test_quota_error_ordering`) and source-verified.
+
+- **D-02 — One in-run retry on transient failures:** network timeouts and 5xx responses get
+  one quick retry (~2s pause), then defer to next cron. A 429/quota is NOT transient — it
+  short-circuits, never retries. D-03 sets 10s connect+read timeout per attempt (worst
+  case: ~22s, then defer).
+
+- **D-04 — Zero live calls in tests:** all automated tests inject a fake HTTP transport
+  (via `respx`/`httpx.MockTransport`). No test ever hits the real TrackingMore API or
+  consumes the 50/month free quota. CI needs no secret. This requires
+  `TrackingMoreRegistrar` to accept a constructor-injected `httpx.Client` (the seam).
+
+- **D-05 — Fail-fast API-key check at startup:** `main()` validates `TRACKINGMORE_API_KEY`
+  immediately after `load_dotenv()` — before Gmail fetch and DB open. Missing/empty key →
+  one PII-safe error log (key value never logged) → `return 1`. Cron sees a clear non-zero
+  exit; no wasted work.
+
+- **D-07 — Quiet tiered logging:** `created` → INFO; `already-exists` → INFO/DEBUG;
+  transient error → ERROR; quota short-circuit → one WARNING. All PII-safe (LOG-02). Healthy
+  runs stay near-silent.
+
+- **D-08 — `courier_code` omitted when carrier is None:** the create payload always has
+  `tracking_number`; `courier_code` is included only when `carrier` is truthy. Lets
+  TrackingMore auto-detect the courier (TRACK-05), avoids sending an explicit `null`,
+  and is future-proof for parsers that do supply a carrier. `AliExpressParser` returns
+  `carrier=None` today so the field is omitted in practice — but the seam carries it
+  through, not dropped.
+
+Research confirmed the TrackingMore v4 response envelope: HTTP 200 + `meta.code` 200/201
+for success; `meta.code` 4016 or 4101 for already-exists (treated as success per TRACK-03);
+`meta.code` 4021/4190 or HTTP 402 for quota-exhausted; HTTP 429 for rate-limit.
+
+### 6b. Plan & execute — two Nyquist waves
+
+Planning produced 2 plans across 2 Nyquist waves (Wave 0 then Wave 2, mirroring the Phase
+4 pattern):
+
+#### Wave 0 — Plan `05-01` (RED: contract tests before source)
+
+Before any implementation existed, Plan 05-01 authored the complete test contract:
+
+- Added `respx>=0.23` as a dev dependency in `pyproject.toml` and a `mock_router` respx
+  fixture plus five synthetic TrackingMore v4 response builders to `tests/conftest.py`
+  (`make_success_response`, `make_already_exists_response`, `make_quota_response`,
+  `make_rate_limit_response`, `make_5xx_response`) — commit `61cb4a5`.
+- Created `tests/test_registrar.py` with 15 contract-named tests covering TRACK-01..05,
+  LOG-02, D-05, and D-06, all running against a mocked transport (zero live calls per D-04).
+  Every test failed RED on the not-yet-existing `TrackingMoreRegistrar` /
+  `QuotaExceededError` — commit `76a7ca3`.
+
+**Honest deviation (from 05-01-SUMMARY.md):** the pre-commit `mypy --strict` gate would
+have failed on the intentional RED imports. The fix: a temporary
+`[[tool.mypy.overrides]] ignore_errors = true` block for `tests.test_registrar` in
+`pyproject.toml`, added with a comment making clear that Plan 02 *must* remove it. Plan 02
+did. This is the standard Nyquist Wave 0 pattern for the project: commit the temporary
+override rather than skip the pre-commit gate.
+
+#### Wave 2 — Plan `05-02` (GREEN: implementation)
+
+Plan 05-02 turned all 15 RED tests GREEN:
+
+- **Task 1 — `registrar.py`** (`9fb626f`): added `QuotaExceededError(Exception)` with a
+  structural-only message (LOG-02), and `TrackingMoreRegistrar` implementing the `Registrar`
+  Protocol with a constructor-injected `httpx.Client` (D-04). `__call__` builds the payload
+  (D-08), POSTs `/v4/trackings/create` with the `Tracking-Api-Key` header, and drives the
+  single ~2s transient retry (D-02). `_handle` maps all six outcomes: success → INFO +
+  `True`; already-exists → INFO + `True` (TRACK-03); 429 → `QuotaExceededError("rate-limit")`
+  (D-01/D-06); quota codes / HTTP 402 → `QuotaExceededError("quota-exhausted")`; 5xx →
+  raise `httpx.HTTPStatusError` (caught by `__call__`'s retry loop); other 4xx → ERROR +
+  `False`. `NullRegistrar` and `Registrar` Protocol left unchanged.
+
+- **Task 2 — `db.py` + `main.py`** (`eb1acae`): threaded `carrier: str | None = None`
+  through `db.register_and_persist` → `registrar(tracking_number, carrier)` (D-08); three
+  surgical `main()` edits — D-05 fail-fast key check + `return 1` before `sqlite3.connect`;
+  `NullRegistrar` → `TrackingMoreRegistrar(api_key=api_key, client=http_client)` with a
+  named `http_client = httpx.Client(timeout=10.0)` closed in `finally`; and
+  `except QuotaExceededError: logger.warning(…); break` placed immediately *before* the
+  broad `except Exception` (D-06 ordering). Temporary mypy override removed. Full-tree
+  `mypy --strict` clean.
+
+**Implementation detail worth teaching:** the retry catch for 5xx lives in `__call__`
+(which owns the `for attempt in range(2)` loop and `retry_pause`), not in `_handle`.
+`_handle` raises `httpx.HTTPStatusError` for 5xx; `__call__` catches it, pauses ~2s, and
+retries once. This means `test_5xx_retries_once_then_defers` sees `call_count == 2`
+(first call + one retry) — a direct expression of D-02.
+
+**Second deviation (from 05-02-SUMMARY.md):** `respx 0.23.1`'s `MockRouter` is not an
+`httpx.BaseTransport` — it has no `handle_request` method. Every test in the Wave 0 suite
+errored before exercising any source. Fix: wrapped the router in
+`httpx.Client(transport=httpx.MockTransport(router.handler))` at the single `_make_registrar`
+test helper. Behavior and zero-live-calls guarantee unchanged; `route.called` / `route.calls`
+still fully functional.
+
+**Third deviation (from 05-02-SUMMARY.md):** two Phase 4 `main()` tests broke when the
+new D-05 gate was wired in. `test_main_dispatch_loop_logs_pii_safely_on_error` and
+`test_main_calls_fetch_and_returns_zero` drive the real `main()` and expect exit 0, but
+neither set `TRACKINGMORE_API_KEY`. The D-05 gate (the phase's intended new behavior)
+correctly returned 1 before either test's assertion. Fix: added
+`monkeypatch.setenv("TRACKINGMORE_API_KEY", "FAKE_KEY")` so each test passes the gate and
+reaches the behavior it is actually asserting.
+
+All 15 contract tests GREEN; full 73-test suite GREEN; `mypy --strict` clean across all 26
+files (source + tests); ruff clean.
+
+### 6c. Verify
+
+Goal-backward verification ([`05-VERIFICATION.md`](.planning/phases/05-pipeline/05-VERIFICATION.md),
+2026-06-02): **5/5 ROADMAP success criteria and all 8 PLAN must-have truths verified**
+against the actual source — not the SUMMARY narrative. Every key link was confirmed in
+order: D-06 catch precedes broad `except`; named `http_client` closed in `finally`; D-08
+`courier_code` conditional; D-05 key check precedes `sqlite3.connect` and Gmail fetch.
+
+**Status: `human_needed`** — not `passed`. The single reason: every automated test mocks
+the transport (D-04), so the real outbound HTTPS path, real auth header, and real
+TrackingMore response envelope are structurally correct in code but unverified against the
+production endpoint. The one manual-only check (run the tool with a real `TRACKINGMORE_API_KEY`
+and watch the TrackingMore dashboard) cannot run in CI without exposing credentials.
+`human_needed` is honest; it is not a failure.
+
+### 6d. The code-review fix wave
+
+Phase 5 followed the same pattern as Phase 3 and Phase 4: green tests and a passing
+goal-verification were not the end. The automated `/gsd-code-review` gate produced
+`05-REVIEW.md` (0 Critical, 6 Warning, 4 Info). None blocked the Phase 5 goal, but all
+were closed via quick tasks immediately after. These are Phase 5's "after-green" fixes:
+
+**WR-01 — Docstring overclaim on `register_and_persist`** (`8a49029`): the docstring
+added in Phase 4 quick task `260601-pa7` said the function is "idempotent / safe to retry"
+and "a repeat call is a silent no-op". This is only true at the DB-write layer (both
+`INSERT`s use `INSERT OR IGNORE`, from `5a58eaf`). It is false at the API layer:
+`register_and_persist` calls the billable TrackingMore registrar unconditionally — it
+does not check `is_tracking_registered` itself, so a repeat call still fires a live API
+request and consumes quota. The fix (`8a49029`) was docstring-only: rewrote the header to
+say "NOT idempotent at the API layer; callers MUST dedup via `is_tracking_registered()`
+first." No code changed; the INSERT OR IGNORE behavior (from `5a58eaf`) was not touched.
+The real pipeline is safe because `main.py` runs the `is_tracking_registered` guard
+(DEDUP-04) before calling `register_and_persist` — the docstring now says so explicitly.
+
+**WR-02 — Spurious `data/` directory creation** (`0c504a1`): `makedirs` was called
+unconditionally; a bare filename (or `:memory:`) as `DATABASE_PATH` would create an
+unwanted `data/` subdirectory. Fix: guard `os.makedirs` behind a `os.dirname(path)` check.
+
+**WR-03 — `configure_logging` handler leak** (`29e60a6`): calling `configure_logging()`
+more than once (possible in test teardown) stacked additional handlers on the root logger,
+producing duplicate log lines and a file-descriptor leak. Fix: clear and close existing
+root handlers before adding new ones, making the function idempotent.
+
+**WR-04 — PII in missing-credentials log** (`ffe6540`): the error log for a missing
+`GMAIL_CREDENTIALS_PATH` logged the full absolute path, which on a Pi or developer machine
+includes the OS username. Fix: log `os.path.basename(path)` only.
+
+**WR-05 — Unbounded per-run retries** (`a4f2bd8`): no cap on cumulative retry sleep meant
+a pathological run (many parcels, all with transient errors) could hold the cron slot
+indefinitely. Fix: per-run retry budget caps cumulative sleep; `random.uniform` jitter
+de-syncs simultaneous retries.
+
+**WR-06 — Over-broad `resp.json()` except** (`273978c`): the bare `except Exception:
+body = {}` masked non-decode errors (connection drops mid-body, MemoryError) as "empty
+body" rather than propagating them. Fix: narrow to `except (json.JSONDecodeError, ValueError)`.
+
+**IN-01 — Missing coverage for quota code paths** (`6ab8bf3`): `meta.code` 4101 and 4190
+and HTTP 402 were handled in source but not explicitly covered by a parametrized test.
+Added 5 parametrized cases with mutation-checked assertions.
+
+**IN-02 — Dead `return False` in `__call__`** (`8fcbd3e`): the post-loop fallthrough
+`return False` was unreachable (the loop always exits via `return True`, `return False`,
+or raises). Replaced with `raise AssertionError("unreachable")` to make the intent clear
+and satisfy mypy's return-path analysis without a silent dead branch.
+
+**IN-03 / IN-04 — Dead conftest response builders and unused fixture** (`39e3961`): the
+five `make_*_response` builders in `conftest.py` (from Wave 0) were never called by the
+final tests — tests built responses inline. The `synthetic_email_body` fixture and an
+orphaned `import httpx` were also dead. Removed 65 lines, leaving conftest cleaner.
+
+### 6e. Teaching point
+
+**Teaching point — the injectable transport seam is the architecture that makes "test
+everything before writing it" possible without burning quota.** Every contract test
+(authored at Wave 0, `76a7ca3`, before a line of `TrackingMoreRegistrar` existed) ran
+against `httpx.MockTransport`. Zero live calls; zero quota consumed; CI needs no secret.
+The `httpx.Client` constructor injection (D-04) is the single decision that made this
+possible — and it costs nothing at runtime. When the real client was wired in (`eb1acae`),
+the suite was already proven. The Phase 4 `NullRegistrar` seam delivered the same lesson at
+a coarser level; Phase 5's injectable transport delivers it at the HTTP boundary itself.
+
+The second lesson is the `human_needed` verdict: an honest "5/5 automated, one
+manual-only check outstanding" beats a falsely-green pass. Every automated test mocks the
+transport — that is not a shortcut, it is the D-04 decision in action. The one thing
+automation cannot do (hand the real `TRACKINGMORE_API_KEY` to the real endpoint) is the
+one thing marked manual. The boundary between what a CI suite can prove and what requires
+a live environment is drawn precisely, not glossed over.
+
+---
+
 ## Where we are now
 
 - ✅ **Phase 1 — Scaffold:** complete and verified.
@@ -445,12 +668,14 @@ existed — an honest "incomplete but verified" state beats a half-wired loop ev
   — with a code-review catch (CR-02) that repaired the drop-in contract before it shipped.
 - ✅ **Phase 4 — Deduplication:** complete and verified (4/4 must-haves; code-review finding
   WR-01 closed via quick task `260601-pa7`; one live-run UAT item pending human verification).
+- ✅ **Phase 5 — Pipeline:** complete and verified (5/5 ROADMAP success criteria; status
+  `human_needed` pending the single live end-to-end TrackingMore run — the one manual-only
+  check that cannot run in CI without exposing credentials per D-04).
 - ⏭️ **Next: Phase 5.1 — Status Monitoring & Notifications.** Start with
-  `/gsd-discuss-phase 5.1`. Phase 4 left a `NullRegistrar` seam and two tables ready;
-  Phase 5.1 drops in the real `TrackingMoreRegistrar`, polls for status changes, and pushes
-  phone notifications.
+  `/gsd-discuss-phase 5.1`. Phase 5 wired the TrackingMore API end-to-end; Phase 5.1 adds
+  status polling for in-flight parcels and push phone notifications when a parcel moves.
 
-Overall milestone progress: **4 of 8 phases (50%)**.
+Overall milestone progress: **5 of 8 phases (63%)**.
 
 ---
 
